@@ -23,8 +23,12 @@ function build(files, ctx) {
     h('header', { class: 'view-header' },
       h('h1', {}, ctx.label('files')),
       h('p', { class: 'lead' }, needed
-        ? `${needed} still needed. Upload each one here (up to 10 MB), or mark it as sent if you shared it another way.`
+        ? `${needed} still needed. Upload each one here, or let ${ctx.project.ownerName || 'us'} know you sent it another way.`
         : 'Everything on the list has been shared. Thank you!')),
+    h('aside', { class: 'tip', 'aria-label': 'Large files' },
+      h('p', { class: 'tip-title' }, 'Large files, like videos'),
+      h('p', {}, `Uploads here can be up to 10 MB. For anything bigger, email it to ${ctx.project.ownerName || 'us'}, ` +
+        'or share it from Google Drive and paste the link. Use "I sent it another way" on that item.')),
     files.length
       ? h('ul', { class: 'stack' }, files.map((f) => h('li', {}, fileCard(f, ctx))))
       : h('div', { class: 'card card-calm' }, h('p', { class: 'card-title' }, 'No files needed right now.')));
@@ -33,7 +37,7 @@ function build(files, ctx) {
 function statusChip(file) {
   const s = file.status.toLowerCase();
   if (s === 'received') return chip('Received', 'green');
-  if (s === 'shared') return chip(file.hasFile ? 'Uploaded' : 'Sent', 'green');
+  if (s === 'shared') return chip(file.hasFile ? 'Uploaded' : file.hasLink ? 'Link shared' : 'Sent', 'green');
   return chip('Needed', 'amber');
 }
 
@@ -53,6 +57,15 @@ function fileCard(initial, ctx) {
     onchange: () => { if (input.files[0]) upload(input.files[0]); }
   });
 
+  // "Sent another way" box: kept between redraws so a pasted link isn't lost.
+  let otherWayOpen = false;
+  const linkId = `link-${file.id}`;
+  const linkInput = h('input', {
+    id: linkId, type: 'url', inputmode: 'url', autocomplete: 'off',
+    placeholder: 'https://drive.google.com/…', class: 'text-input'
+  });
+  const otherWayIntro = h('p', {});
+
   function draw() {
     const s = file.status.toLowerCase();
     const actions = h('div', { class: 'card-actions' });
@@ -62,7 +75,8 @@ function fileCard(initial, ctx) {
     } else {
       if (!busy) {
         status.textContent = s === 'shared'
-          ? (file.hasFile ? 'Uploaded. You can add another version if needed.' : 'Marked as sent another way.')
+          ? (file.hasFile ? 'Uploaded. You can add another version if needed.'
+            : file.hasLink ? 'Link shared. Thank you!' : 'Marked as sent another way.')
           : '';
       }
       // A <label> styled as a button opens the file picker and works with the keyboard.
@@ -76,8 +90,8 @@ function fileCard(initial, ctx) {
           onkeydown: (e) => { if (!busy && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); input.click(); } }
         }, s === 'needed' ? 'Upload a file' : 'Upload another'),
         pending && !busy ? h('button', { class: 'btn btn-outline', type: 'button', onclick: () => upload(pending) }, 'Try again') : null,
-        s === 'needed' && !busy
-          ? h('button', { class: 'btn-link', type: 'button', onclick: () => setStatus('Shared') }, 'I sent it another way')
+        s === 'needed' && !busy && !otherWayOpen
+          ? h('button', { class: 'btn-link', type: 'button', onclick: () => openOtherWay() }, 'I sent it another way')
           : null,
         s === 'shared' && !file.hasFile && !busy
           ? h('button', { class: 'btn-link', type: 'button', onclick: () => setStatus('Needed') }, 'Undo')
@@ -85,13 +99,34 @@ function fileCard(initial, ctx) {
       ].filter(Boolean));
     }
 
+    const otherWay = otherWayOpen && s === 'needed'
+      ? h('div', { class: 'other-way' },
+        otherWayIntro,
+        h('div', { class: 'field' },
+          h('label', { for: linkId, class: 'field-label' }, 'Link (optional)'),
+          linkInput),
+        h('div', { class: 'confirm-actions' },
+          h('button', { class: 'btn btn-primary', type: 'button', disabled: busy, onclick: () => setStatus('Shared', linkInput.value.trim()) }, busy ? 'Saving…' : 'Mark as sent'),
+          h('button', { class: 'btn btn-outline', type: 'button', disabled: busy, onclick: () => { otherWayOpen = false; error.textContent = ''; draw(); } }, 'Cancel')))
+      : null;
+
     input.disabled = busy;
     fill(card,
       h('div', { class: 'approval-top' }, statusChip(file)),
       h('h2', { id: `file-${file.id}`, class: 'card-title' }, file.item),
       file.details ? h('p', { class: 'muted' }, file.details) : null,
       status, error, input,
-      actions.childNodes.length ? actions : null);
+      otherWay,
+      actions.childNodes.length && !otherWay ? actions : null);
+  }
+
+  function openOtherWay(reason) {
+    otherWayIntro.textContent = (reason ? reason + ' ' : '') +
+      `You can email it to ${owner}, or share it from Google Drive: tap Share, set access to "Anyone with the link", ` +
+      'tap Copy link, and paste it below. Then tap "Mark as sent".';
+    otherWayOpen = true;
+    draw();
+    linkInput.focus();
   }
 
   async function upload(chosen) {
@@ -100,8 +135,7 @@ function fileCard(initial, ctx) {
     input.value = '';
     if (chosen.size > MAX_BYTES) {
       pending = null;
-      error.textContent = `"${chosen.name}" is ${(chosen.size / 1048576).toFixed(1)} MB. The limit is 10 MB. Please send a smaller version, or email it to ${owner} and tap "I sent it another way".`;
-      draw();
+      openOtherWay(`"${chosen.name}" is ${(chosen.size / 1048576).toFixed(1)} MB, which is over the 10 MB limit for uploads here.`);
       return;
     }
     busy = true;
@@ -123,14 +157,24 @@ function fileCard(initial, ctx) {
     }
   }
 
-  async function setStatus(next) {
+  async function setStatus(next, link = '') {
+    if (link && !/^https?:\/\/\S+$/i.test(link)) {
+      error.textContent = 'That doesn\'t look like a link. It should start with https:// (use "Copy link" in Google Drive), or leave the box empty.';
+      linkInput.focus();
+      return;
+    }
     if (busy) return;
     busy = true;
     error.textContent = '';
     status.textContent = 'Saving…';
     draw();
     try {
-      file = await ctx.api.updateFileStatus(file.id, next);
+      file = await ctx.api.updateFileStatus(file.id, next, link);
+      if (next === 'Shared') {
+        otherWayOpen = false;
+        linkInput.value = '';
+        announce(`Thank you! ${owner} has been told.`, 'success');
+      }
     } catch (err) {
       if (ctx.handleAuthError(err)) return;
       error.textContent = err.message;

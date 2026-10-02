@@ -85,7 +85,7 @@ export function createApi(scriptUrl, getPasscode) {
     getPlan: () => call('getPlan'),
 
     getFiles: () => call('getFiles'),
-    updateFileStatus: (id, status) => call('updateFileStatus', { id, status }),
+    updateFileStatus: (id, status, link = '') => call('updateFileStatus', { id, status, link }),
     uploadFile: (id, name, mimeType, base64) => call('uploadFile', { id, name, mimeType, base64 }),
 
     getNotes: () => call('getNotes'),

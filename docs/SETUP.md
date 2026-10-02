@@ -155,8 +155,11 @@ client (see step 6). Leave `portalUrl` blank until the portal is on Netlify.
 
 ## 6. Switch on the daily trigger
 
-In the sheet: **Portal → Install daily trigger**. (Approve permissions if
-asked.)
+In the sheet: **Portal → Install triggers (daily + hourly)**. (Approve
+permissions if asked.)
+
+Every hour, the script emails the client about any note you've added in the
+**Notes** tab (once per note).
 
 The daily check runs about 7am in the project's timezone. Each morning it:
 
@@ -166,7 +169,7 @@ The daily check runs about 7am in the project's timezone. Each morning it:
 - Emails a **reminder** when a visible set is due within two days and hasn't
   been sent. It then fills **Reminded at**.
 
-**Both emails stay off while `clientEmail` is blank.**
+**All client emails stay off while `clientEmail` is blank.**
 
 **Before you fill in `clientEmail`:** for any set you've already sent the
 client by email (for example Set 1), set **Notify client** to **No**.
@@ -219,11 +222,15 @@ Everything is controlled from the **Sets** tab, one change at a time:
 | **Delay** a set (keep it hidden even after its date) | **Release → Hold** |
 | Move a set to a **new date** | Change **Opens** (and **Due**). Keep **Release = Auto**. |
 | Go back to the normal schedule | **Release → Auto** |
+| Open a set **as soon as the previous one is sent** | **Release → After previous**. It still opens on its **Opens** date if the previous set hasn't been sent by then. |
 
 - **Auto** shows a set once **Opens** is today or earlier (in the project
   timezone).
 - **Hold** always hides it. A set on Hold is also never mentioned as "Next set
   opens…".
+- **After previous** works like Auto, but also opens the moment the client
+  sends the set before it (the set with the next-earlier Opens date). The
+  client sees it straight away, so no "ready" email is sent for it.
 - The client sees changes the next time they open or refresh the portal.
 - If **Notify client = Yes**, the "ready" email goes out at the next daily
   check. Use **Portal → Run daily check now** to send it immediately.

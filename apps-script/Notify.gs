@@ -115,3 +115,47 @@ function friendlyDate_(iso) {
   const d = new Date(iso + 'T12:00:00Z');
   return Utilities.formatDate(d, 'UTC', 'EEEE, MMMM d');
 }
+
+/**
+ * Emails the client about notes you added in the Notes tab (any row whose
+ * From isn't the client). Runs every hour (see installTriggers), or right
+ * away from Portal → Send note emails now. Each note is emailed once:
+ * "Client emailed" is filled in afterwards. Off while clientEmail is blank.
+ */
+function emailNewNotes() {
+  const settings = readSettings_();
+  if (!str_(settings.clientEmail)) return 'No note emails: clientEmail is blank in Settings.';
+  if (enabledModules_(settings).indexOf('notes') === -1) return 'Notes module is off.';
+
+  const client = key_(settings.clientName);
+  const now = new Date();
+  let sent = 0;
+
+  withLock_(function () {
+    const table = loadTable_('Notes', ['Date', 'From', 'Note', 'Client emailed']);
+    const fresh = table.rows.filter(function (r) {
+      const date = r['Date'];
+      return str_(r['Note']) &&
+        !str_(r['Client emailed']) &&
+        key_(r['From']) !== client &&
+        !(date instanceof Date && date > now); // not future-dated
+    });
+    if (!fresh.length) return;
+
+    const owner = str_(settings.ownerName) || 'your project team';
+    const portalUrl = str_(settings.portalUrl);
+    const greeting = (str_(settings.greeting) || 'Hi') + (str_(settings.clientName) ? ' ' + str_(settings.clientName) : '') + ',\n\n';
+    emailClient_(settings,
+      fresh.length === 1 ? 'A new note from ' + owner : fresh.length + ' new notes from ' + owner,
+      greeting + (fresh.length === 1 ? owner + ' left you a note:' : owner + ' left you some notes:') + '\n\n' +
+      fresh.map(function (r) { return '"' + str_(r['Note']) + '"'; }).join('\n\n') +
+      (portalUrl ? '\n\nReply in your portal: ' + portalUrl : '') +
+      '\n\n' + owner);
+    fresh.forEach(function (r) { updateRow_(table, r, { 'Client emailed': now }); });
+    sent = fresh.length;
+  });
+
+  const summary = sent ? 'Emailed the client about ' + sent + ' note(s).' : 'No new notes to email.';
+  console.log('emailNewNotes: ' + summary);
+  return summary;
+}

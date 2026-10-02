@@ -2,7 +2,7 @@
  * Home: what's waiting on the client, progress, and key dates.
  */
 
-import { h, formatDate, formatTarget, daysUntil, progressBar, chip, loadingBlock, errorBlock } from '../ui.js';
+import { h, formatDate, formatTarget, daysUntil, progressBar, chip, nextSetText, loadingBlock, errorBlock } from '../ui.js';
 
 export function render(main, ctx) {
   main.replaceChildren(loadingBlock());
@@ -63,7 +63,7 @@ function build(p, ctx) {
         h('p', { class: 'card-title' }, 'You\'re all caught up.'),
         h('p', { class: 'muted' }, 'Nothing needs you right now. Thank you!')),
     has('questions') && p.nextSet
-      ? h('p', { class: 'next-note' }, `Next questions, "${p.nextSet.title}", open ${formatDate(p.nextSet.opens)}.`)
+      ? h('p', { class: 'next-note' }, nextSetText(p.nextSet, 'your current answers'))
       : null);
 
   // --- Progress
@@ -90,7 +90,7 @@ function build(p, ctx) {
 
   return h('div', { class: 'view view-home' },
     h('header', { class: 'view-header' },
-      h('h1', {}, p.clientName ? `Hi ${p.clientName}` : 'Welcome'),
+      h('h1', {}, p.clientName ? `${p.greeting || 'Hi'} ${p.clientName}` : 'Welcome'),
       h('p', { class: 'lead' }, 'Here\'s where things stand.')),
     waitingSection,
     progress.length ? h('section', { class: 'section', 'aria-labelledby': 'progress-heading' },

@@ -6,6 +6,8 @@
  * See docs/THEME.md for what each one is used for.
  *
  * The site has no dark mode, so the portal is light only.
+ * Since October 2026 the portal uses rounder corners and more depth than the
+ * site (an "app" feel); the colors and fonts are unchanged.
  */
 
 :root {
@@ -37,19 +39,32 @@
   --status-red-bg: #f8ebea;
 
   /* What the portal uses them for */
-  --color-page: var(--neutral-50);
+  --color-page: #eef2f6;
   --color-surface: var(--white);
+  --color-surface-soft: #f6f8fb;
   --color-text: var(--navy-900);
   --color-muted: var(--neutral-600);
-  --color-border: var(--neutral-200);
+  --color-border: rgba(15, 22, 34, .08);
+  --color-input-border: #cfd6df;
   --color-header: var(--navy-950);
   --color-link: var(--accent-600);
   --color-focus: var(--accent-600);
 
+  /* Depth: the page has a soft tint; headers and hero panels are navy */
+  --page-background:
+    radial-gradient(900px 480px at 110% -10%, rgba(196, 156, 108, .14), transparent 60%),
+    radial-gradient(700px 420px at -20% 10%, rgba(47, 122, 112, .10), transparent 60%),
+    linear-gradient(180deg, #e7ecf2 0%, #eef2f6 360px);
+  --hero-background:
+    radial-gradient(420px 220px at 100% 0%, rgba(196, 156, 108, .28), transparent 70%),
+    radial-gradient(360px 240px at 0% 100%, rgba(47, 122, 112, .35), transparent 70%),
+    linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
+
   /* Buttons */
-  --button-bg: var(--accent-600);
-  --button-bg-hover: var(--accent-700);
+  --button-bg: linear-gradient(180deg, #34877c 0%, var(--accent-600) 100%);
+  --button-bg-hover: linear-gradient(180deg, var(--accent-600) 0%, var(--accent-700) 100%);
   --button-text: var(--white);
+  --button-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 8px 18px -10px rgba(37, 96, 88, .75);
 
   /* Project accent: replaced at runtime by Settings → accentColor.
      Used sparingly: progress bars, small highlights. Never for text. */
@@ -70,11 +85,13 @@
   --tracking-eyebrow: .08em;
 
   /* Shape */
-  --radius-sm: 4px;   /* buttons, inputs */
-  --radius-md: 8px;   /* small panels */
-  --radius-lg: 14px;  /* cards */
+  --radius-sm: 6px;   /* chips, small bits */
+  --radius-md: 12px;  /* buttons, inputs, notices */
+  --radius-lg: 20px;  /* cards */
+  --radius-xl: 26px;  /* page header panels, dialogs */
   --radius-pill: 999px;
-  --shadow-card: 0 1px 2px rgba(15, 22, 34, .04), 0 8px 24px -16px rgba(15, 22, 34, .25);
+  --shadow-card: 0 1px 2px rgba(15, 22, 34, .05), 0 14px 32px -18px rgba(15, 22, 34, .28);
+  --shadow-raised: 0 2px 4px rgba(15, 22, 34, .06), 0 24px 48px -20px rgba(15, 22, 34, .35);
 
   /* Spacing (same scale as the site) */
   --space-1: .25rem;
@@ -86,5 +103,5 @@
   --space-12: 3rem;
 
   --max-width: 720px;
-  --transition: .18s ease;
+  --transition: .2s cubic-bezier(.22, .61, .36, 1);
 }

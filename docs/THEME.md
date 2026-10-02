@@ -27,6 +27,11 @@ Your site has no dark mode, so the portal is light only.
 | `--status-amber` / `-bg` | `#b4791f` / `#faf1e2` | "Not saved yet", restored-text notice |
 | `--status-red` / `-bg` | `#b3453c` / `#f8ebea` | Errors |
 
+**Depth (added October 2026):** the page uses a soft tinted background
+(`--page-background`, with faint teal and gold glows), and each page opens with
+a navy header panel (`--hero-background`). Change either to restyle the
+"app feel" without touching anything else.
+
 The middle section of `theme.css` maps these to roles (`--color-page`,
 `--color-text`, `--button-bg`…). To change, for example, the button color
 everywhere, change `--button-bg` and `--button-bg-hover`.
@@ -60,17 +65,21 @@ Answer boxes always use 16px text, so iPhones don't zoom in when you tap them.
 
 | Variable | Value | Used for |
 |---|---|---|
-| `--radius-sm` | 4px | Buttons and inputs (same as your site's buttons) |
-| `--radius-md` | 8px | Notices, toasts |
-| `--radius-lg` | 14px | Cards |
+| `--radius-sm` | 6px | Chips, focus rings |
+| `--radius-md` | 12px | Buttons, inputs, notices, toasts |
+| `--radius-lg` | 20px | Cards |
+| `--radius-xl` | 26px | Page header panels, the "How it works" window |
+| `--shadow-card` / `--shadow-raised` | soft layered shadows | Cards / header panels and the focused question |
 | `--space-1` … `--space-12` | .25rem … 3rem | Same spacing scale as your site |
 | `--max-width` | 720px | Width of the content column on large screens |
 
 ## Buttons
 
-They match your site's `.btn`: 600 weight, 4px corners, teal fill, and a
-darker teal on hover. Buttons are at least 44px tall so they're easy to tap.
-Outline buttons use a navy border that turns teal on hover.
+Based on your site's `.btn` (600 weight, teal), with an app feel: 12px
+corners, a subtle teal gradient and shadow, and a slight press effect.
+Buttons are at least 46px tall so they're easy to tap. To go back to your
+site's square-cornered look, set `--radius-md: 4px` and `--button-bg:
+var(--accent-600)`.
 
 ## Studio footer
 

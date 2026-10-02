@@ -6,7 +6,7 @@
  *   setupTemplate()   create missing tabs/columns/settings. Never deletes data.
  *   checkHealth()     show what's missing
  *   fillMissingIds()  give an ID to any row you added without one
- *   installTriggers() switch on the daily check (one click)
+ *   installTriggers() switch on the daily check and hourly note emails
  *   dailyCheck()      run the daily check right now (in Notify.gs)
  */
 
@@ -22,7 +22,7 @@ const SCHEMA = {
     required: ['Set', 'Title', 'Release', 'Opens'],
     dates: ['Opens', 'Due'],
     times: ['Notified at', 'Reminded at'],
-    dropdowns: { 'Release': ['Auto', 'Open now', 'Hold'], 'Notify client': ['Yes', 'No'] }
+    dropdowns: { 'Release': ['Auto', 'Open now', 'Hold', 'After previous'], 'Notify client': ['Yes', 'No'] }
   },
   Questions: {
     idPrefix: 'Q',
@@ -47,23 +47,24 @@ const SCHEMA = {
   },
   Files: {
     idPrefix: 'F',
-    headers: ['ID', 'Item', 'Details', 'Status', 'Drive file link', 'Updated at'],
+    headers: ['ID', 'Item', 'Details', 'Status', 'Drive file link', 'Shared link', 'Updated at'],
     required: ['ID', 'Item', 'Status', 'Drive file link', 'Updated at'],
     times: ['Updated at'],
     dropdowns: { 'Status': ['Needed', 'Shared', 'Received'] }
   },
   Notes: {
     idPrefix: 'N',
-    headers: ['ID', 'Date', 'From', 'Note'],
+    headers: ['ID', 'Date', 'From', 'Note', 'Client emailed'],
     required: ['ID', 'Date', 'From', 'Note'],
-    times: ['Date']
+    times: ['Date', 'Client emailed']
   }
 };
 
 // Settings keys, with a default value and a help line for the Help column.
 const SETTINGS_KEYS = [
   ['projectName', '', 'Shown at the top of the portal.'],
-  ['clientName', '', 'First name used in greetings and emails.'],
+  ['clientName', '', 'Name used in greetings and emails, e.g. Pastor James.'],
+  ['greeting', 'Dear', 'How Home greets the client, e.g. Dear or Hi.'],
   ['ownerName', 'Edem', 'Your name, as the client sees it.'],
   ['portalUrl', '', 'The Netlify address of this portal. Used in client emails.'],
   ['passcode', '', 'The client types this to open the portal. Keep it private.'],
@@ -96,8 +97,9 @@ function onOpen() {
     .addItem('Check health', 'checkHealth')
     .addItem('Fill missing IDs', 'fillMissingIds')
     .addSeparator()
-    .addItem('Install daily trigger', 'installTriggers')
-    .addItem('Run daily check now', 'runDailyCheckFromMenu');
+    .addItem('Install triggers (daily + hourly)', 'installTriggers')
+    .addItem('Run daily check now', 'runDailyCheckFromMenu')
+    .addItem('Send note emails now', 'runNoteEmailsFromMenu');
   if (typeof seedProject === 'function') {
     menu.addSeparator().addItem('Load starter content', 'seedProject');
   }
@@ -116,6 +118,10 @@ function tellUser_(title, message) {
 
 function runDailyCheckFromMenu() {
   tellUser_('Daily check', dailyCheck());
+}
+
+function runNoteEmailsFromMenu() {
+  tellUser_('Note emails', emailNewNotes());
 }
 
 // ===========================================================================
@@ -157,6 +163,7 @@ function ensureTemplate_() {
       while (used > 0 && !existing[used - 1]) used--;
       sheet.getRange(1, used + 1, 1, missing.length).setValues([missing]);
       report.push(tabName + ': added column(s) ' + missing.join(', '));
+      if (tabName === 'Notes' && missing.indexOf('Client emailed') !== -1) markOldNotesEmailed_();
     }
 
     sheet.getRange(1, 1, 1, sheet.getLastColumn()).setFontWeight('bold');
@@ -274,6 +281,19 @@ function loadSeed_(data) {
   return report;
 }
 
+/**
+ * When note emails are first switched on, notes that already exist are
+ * marked so the client isn't emailed about old messages.
+ */
+function markOldNotesEmailed_() {
+  const table = loadTable_('Notes', ['Note', 'Client emailed']);
+  table.rows.forEach(function (row) {
+    if (str_(row['Note']) && !str_(row['Client emailed'])) {
+      updateRow_(table, row, { 'Client emailed': 'Not emailed (older note)' });
+    }
+  });
+}
+
 // ===========================================================================
 // IDs
 // ===========================================================================
@@ -304,19 +324,21 @@ function fillMissingIds() {
 // Triggers
 // ===========================================================================
 
-/** Switches on the daily check at 7am project time. Safe to run again. */
+const TRIGGERS = ['dailyCheck', 'emailNewNotes'];
+
+/**
+ * Switches on the daily check (about 7am project time) and the hourly note
+ * emails. Safe to run again: old copies are replaced.
+ */
 function installTriggers() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'dailyCheck') ScriptApp.deleteTrigger(t);
+    if (TRIGGERS.indexOf(t.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(t);
   });
-  const settings = readSettings_();
-  ScriptApp.newTrigger('dailyCheck')
-    .timeBased()
-    .everyDays(1)
-    .atHour(7)
-    .inTimezone(projectTimezone_(settings))
-    .create();
-  tellUser_('Daily trigger', 'The daily check is on. It runs every morning around 7am (' + projectTimezone_(settings) + ').');
+  const tz = projectTimezone_(readSettings_());
+  ScriptApp.newTrigger('dailyCheck').timeBased().everyDays(1).atHour(7).inTimezone(tz).create();
+  ScriptApp.newTrigger('emailNewNotes').timeBased().everyHours(1).create();
+  tellUser_('Triggers', 'On: the daily check runs every morning around 7am (' + tz + '), ' +
+    'and note emails are checked every hour.');
 }
 
 // ===========================================================================
@@ -404,12 +426,15 @@ function runHealthChecks_() {
     }
   }
 
-  // Daily trigger.
-  let hasTrigger = false;
+  // Triggers.
+  let installed = [];
   try {
-    hasTrigger = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'dailyCheck'; });
+    installed = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
   } catch (e) { /* not authorised yet */ }
-  add('Daily trigger', hasTrigger, hasTrigger ? 'Installed.' : 'Not installed. Run Portal → Install daily trigger.');
+  const missingTriggers = TRIGGERS.filter(function (name) { return installed.indexOf(name) === -1; });
+  add('Triggers', missingTriggers.length === 0, missingTriggers.length
+    ? 'Missing: ' + missingTriggers.join(', ') + '. Run Portal → Install triggers.'
+    : 'Daily check and hourly note emails are on.');
 
   // IDs: missing or duplicated.
   Object.keys(SCHEMA).forEach(function (tabName) {

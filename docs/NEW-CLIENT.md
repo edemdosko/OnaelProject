@@ -53,6 +53,7 @@ Open the **Settings** tab. Each key has a **Help** note. Fill in:
 |---|---|
 | `projectName` | `Next Client App` |
 | `clientName` | `Sam` |
+| `greeting` | `Dear` (already filled) or `Hi` |
 | `ownerName` | `Edem` (already filled) |
 | `passcode` | Three short words, e.g. `amber-river-north` |
 | `notifyEmail` | Your email |
@@ -71,7 +72,7 @@ Type straight into the tabs. Dates use the format `2027-01-15`.
 
 | Tab | What to add |
 |---|---|
-| **Sets** | One row per set: **Set** (`Set 1`), **Title**, **Intro**, **Opens**, **Due**, **Release** = `Auto`, **Notify client** = `Yes` |
+| **Sets** | One row per set: **Set** (`Set 1`), **Title**, **Intro**, **Opens**, **Due**, **Release** = `Auto` (or `After previous` to open each set as soon as the one before is sent), **Notify client** = `Yes` |
 | **Questions** | **Set** (must match a Set name exactly), **Order** (1, 2, 3…), **Question**, **Helpful note** |
 | **Plan** | **Phase**, **Target date**, **Step**, **Details**, **Owner**, **Status**, **Key date** (Yes for Home) |
 | **Files** | **Item**, **Details**, **Status** = `Needed` |
@@ -87,7 +88,7 @@ Leave **ID** columns blank, then click **Portal → Fill missing IDs**.
    **Who has access** = **Anyone**. Then click **Deploy**.
 4. Copy the **Web app URL**, which ends in `/exec`. Make sure it's not a
    "Library" link. Click **Done**.
-5. Back in the sheet: **Portal → Install daily trigger**.
+5. Back in the sheet: **Portal → Install triggers (daily + hourly)**.
 6. **Portal → Check health.** Everything should show ✓.
 
 ## 7. Add the client to Netlify

@@ -7,11 +7,12 @@
  *  - leaving the page with unsaved text asks first.
  */
 
-import { h, store, announce, formatDate, daysUntil, progressBar, chip, loadingBlock, errorBlock } from '../ui.js';
+import { h, store, announce, formatDate, daysUntil, progressBar, chip, nextSetText, voiceButton, stopAllVoice, canUseVoice, loadingBlock, errorBlock } from '../ui.js';
 
 let unsavedGuard = null;
 
 export function leave() {
+  stopAllVoice();
   if (unsavedGuard) window.removeEventListener('beforeunload', unsavedGuard);
   unsavedGuard = null;
 }
@@ -78,7 +79,7 @@ function build(data, main, ctx) {
     : null;
 
   const nextNote = data.nextSet
-    ? h('p', { class: 'next-note' }, `Next set, "${data.nextSet.title}", opens ${formatDate(data.nextSet.opens)}.`)
+    ? h('p', { class: 'next-note' }, nextSetText(data.nextSet))
     : null;
 
   const empty = !open.length
@@ -90,7 +91,8 @@ function build(data, main, ctx) {
   return h('div', { class: 'view view-questions' },
     h('header', { class: 'view-header' },
       h('h1', {}, ctx.label('questions')),
-      open.length ? h('p', { class: 'lead' }, 'Short answers are fine. Press Save under each answer, then send them all when you\'re done.') : null),
+      open.length ? h('p', { class: 'lead' }, 'Short answers are fine. Press Save under each answer, then send them all when you\'re done.' +
+        (canUseVoice ? ' Prefer to talk? Tap Speak and say your answer.' : ' Prefer to talk? Tap the microphone on your keyboard.')) : null),
     restoredAny ? h('div', { class: 'notice', role: 'status' },
       'We kept text you hadn\'t saved yet. Press Save on those answers to keep them.') : null,
     empty,
@@ -145,7 +147,7 @@ function questionCard(q, number, ctx, onChange) {
       h('span', {}, q.question)),
     q.note ? h('p', { id: noteId, class: 'q-note' }, q.note) : null,
     textarea,
-    h('div', { class: 'q-footer' }, stateText, button));
+    h('div', { class: 'q-footer' }, stateText, h('div', { class: 'q-buttons' }, voiceButton(textarea), button)));
 
   function isDirty() { return textarea.value.trim() !== saved.trim(); }
 
@@ -261,8 +263,10 @@ function sendPanel(set, cards, owner, ctx, reload) {
     confirmBox.querySelectorAll('button').forEach((b) => { b.disabled = true; });
     confirmBox.querySelector('button').textContent = 'Sending…';
     try {
-      await ctx.api.submitSet(set.set);
-      announce(`Sent! ${owner} has your answers.`, 'success');
+      const result = await ctx.api.submitSet(set.set);
+      announce(result.opened && result.opened.length
+        ? `Sent! ${owner} has your answers. Your next questions are ready below.`
+        : `Sent! ${owner} has your answers.`, 'success');
       reload();
     } catch (err) {
       if (ctx.handleAuthError(err)) return;

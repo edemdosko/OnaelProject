@@ -259,18 +259,25 @@ function isHttpUrl_(s) {
 // ===========================================================================
 
 /**
- * A set is visible when Release is "Open now", or Release is "Auto" (or blank)
- * and Opens is on or before today in the project timezone. "Hold" always hides it.
+ * When is a set visible?
+ *   "Open now"        → always
+ *   "Hold"            → never (even after its date)
+ *   "Auto" (or blank) → once Opens is on or before today (project timezone)
+ *   "After previous"  → as soon as the previous set is sent, or on its Opens
+ *                       date, whichever comes first
+ * "Previous" means the set with the next-earliest Opens date. Sets without
+ * questions are ignored.
  */
-function isSetVisible_(setRow, today) {
+function isSetVisible_(setRow, today, previousSent) {
   const release = key_(setRow['Release']);
   if (release === 'hold') return false;
   if (release === 'open now') return true;
   const opens = isoDate_(setRow['Opens']);
-  return !!opens && opens <= today;
+  if (opens && opens <= today) return true;
+  return release === 'after previous' && previousSent;
 }
 
-/** Shared by getQuestions, getProject and the daily check. */
+/** Shared by getQuestions, getProject, submitSet and the daily check. */
 function buildQuestionsView_(settings) {
   const today = today_(settings);
   const sets = loadTable_('Sets', ['Set', 'Title', 'Release', 'Opens']);
@@ -283,27 +290,25 @@ function buildQuestionsView_(settings) {
     (bySet[s] = bySet[s] || []).push(q);
   });
 
-  const visible = [];
-  let nextSet = null;
-
-  sets.rows.forEach(function (setRow) {
-    const name = str_(setRow['Set']);
-    if (!name) return;
-    if (isSetVisible_(setRow, today)) {
-      const qs = (bySet[name] || []).slice().sort(function (a, b) {
+  // Every set that has questions, in Opens-date order (undated sets last).
+  const all = sets.rows
+    .filter(function (row) { return str_(row['Set']) && (bySet[str_(row['Set'])] || []).length; })
+    .map(function (row) {
+      const name = str_(row['Set']);
+      const qs = bySet[name].slice().sort(function (a, b) {
         return (Number(a['Order']) || 0) - (Number(b['Order']) || 0);
       });
-      const submitted = qs.length > 0 && qs.every(function (q) {
-        const st = key_(q['Status']);
-        return st === 'sent' || st === 'reviewed';
-      });
-      visible.push({
+      return {
         set: name,
-        title: str_(setRow['Title']),
-        intro: str_(setRow['Intro']),
-        opens: isoDate_(setRow['Opens']) || null,
-        due: isoDate_(setRow['Due']) || null,
-        submitted: submitted,
+        title: str_(row['Title']),
+        intro: str_(row['Intro']),
+        opens: isoDate_(row['Opens']) || null,
+        due: isoDate_(row['Due']) || null,
+        release: key_(row['Release']),
+        submitted: qs.every(function (q) {
+          const st = key_(q['Status']);
+          return st === 'sent' || st === 'reviewed';
+        }),
         questions: qs.map(function (q) {
           return {
             id: str_(q['ID']),
@@ -314,19 +319,29 @@ function buildQuestionsView_(settings) {
             status: str_(q['Status']) || 'Not started'
           };
         }),
-        _setRow: setRow
-      });
-    } else if (key_(setRow['Release']) !== 'hold') {
-      // Hidden "Auto" set: a candidate for "Next set opens [date]".
-      const opens = isoDate_(setRow['Opens']);
-      if (opens && opens > today && (!nextSet || opens < nextSet.opens)) {
-        nextSet = { title: str_(setRow['Title']) || name, opens: opens };
+        _setRow: row
+      };
+    })
+    .sort(function (a, b) { return String(a.opens || '9999').localeCompare(String(b.opens || '9999')); });
+
+  const visible = [];
+  let nextSet = null;
+  let previousSent = false;
+
+  all.forEach(function (s) {
+    if (isSetVisible_(s._setRow, today, previousSent)) {
+      visible.push(s);
+    } else if (s.release !== 'hold' && !nextSet) {
+      // The first hidden set (not on Hold) is "next". Its questions stay hidden.
+      if (s.release === 'after previous') {
+        nextSet = { title: s.title || s.set, opens: s.opens, afterPrevious: true };
+      } else if (s.opens && s.opens > today) {
+        nextSet = { title: s.title || s.set, opens: s.opens, afterPrevious: false };
       }
     }
+    previousSent = s.submitted;
   });
 
-  // Oldest open set first.
-  visible.sort(function (a, b) { return String(a.opens || '').localeCompare(String(b.opens || '')); });
   return { today: today, sets: visible, nextSet: nextSet, setsTable: sets, questionsTable: questions };
 }
 
@@ -389,6 +404,7 @@ function actionGetProject_() {
   return {
     projectName: str_(settings.projectName),
     clientName: str_(settings.clientName),
+    greeting: str_(settings.greeting) || 'Hi',
     ownerName: str_(settings.ownerName),
     labels: labels_(settings),
     accentColor: /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(str_(settings.accentColor)) ? str_(settings.accentColor) : '',
@@ -467,7 +483,18 @@ function actionSubmitSet_(payload) {
       const row = findById_(view.questionsTable, q.id);
       if (key_(row['Status']) !== 'reviewed') updateRow_(view.questionsTable, row, { 'Status': 'Sent' });
     });
-    return { set: set, sentAt: now };
+
+    // Sets that open because this one was sent ("After previous"). The client
+    // sees them right away, so the morning "ready" email isn't needed.
+    const before = view.sets.map(function (s) { return s.set; });
+    const after = buildQuestionsView_(settings);
+    const opened = after.sets.filter(function (s) { return before.indexOf(s.set) === -1; });
+    opened.forEach(function (s) {
+      if (after.setsTable.col['Notified at'] && !s._setRow['Notified at']) {
+        updateRow_(after.setsTable, s._setRow, { 'Notified at': now });
+      }
+    });
+    return { set: set, sentAt: now, opened: opened.map(function (s) { return s.title || s.set; }) };
   });
 
   notifyOwner_(settings,
@@ -476,7 +503,7 @@ function actionSubmitSet_(payload) {
       return (i + 1) + '. ' + q.question + '\n' + q.answer;
     }).join('\n\n'));
 
-  return { set: setName, sentAt: result.sentAt.toISOString() };
+  return { set: setName, sentAt: result.sentAt.toISOString(), opened: result.opened };
 }
 
 function approvalOut_(r) {
@@ -577,6 +604,7 @@ function fileOut_(r) {
     details: str_(r['Details']),
     status: str_(r['Status']) || 'Needed',
     hasFile: isHttpUrl_(str_(r['Drive file link'])),
+    hasLink: isHttpUrl_(str_(r['Shared link'])),
     updatedAt: isoTime_(r['Updated at'])
   };
 }
@@ -592,21 +620,38 @@ function actionGetFiles_() {
 function actionUpdateFileStatus_(payload) {
   const id = textField_(payload, 'id', LIMITS.id, 'item ID', true);
   const status = textField_(payload, 'status', 20, 'status', true);
+  const link = textField_(payload, 'link', 1000, 'link', false);
   if (status !== 'Needed' && status !== 'Shared') {
     throw portalError_('BAD_REQUEST', 'That status can\'t be chosen here.');
   }
+  if (link && !isHttpUrl_(link)) {
+    throw portalError_('BAD_REQUEST', 'The link should start with https://. Copy it from the "Share" or "Copy link" button and paste it again.');
+  }
   const settings = readSettings_();
   requireModule_(settings, 'files');
-  return withLock_(function () {
+  const out = withLock_(function () {
     const table = loadTable_('Files', ['ID', 'Item', 'Status', 'Updated at']);
     const row = findById_(table, id);
     if (!row) throw portalError_('NOT_FOUND', 'That item couldn\'t be found. Please refresh the page.');
     if (key_(row['Status']) === 'received') {
       throw portalError_('NOT_ALLOWED', 'This item was already received. Nothing more to do here.');
     }
-    updateRow_(table, row, { 'Status': status, 'Updated at': new Date() });
+    const changes = { 'Status': status, 'Updated at': new Date() };
+    if (status === 'Shared' && link) changes['Shared link'] = asText_(link);
+    if (status === 'Needed') changes['Shared link'] = '';
+    updateRow_(table, row, changes);
+    if (changes['Shared link'] !== undefined) row['Shared link'] = status === 'Shared' ? link : '';
     return fileOut_(row);
   });
+
+  if (status === 'Shared') {
+    notifyOwner_(settings,
+      (str_(settings.clientName) || 'Your client') + ' shared "' + out.item + '" another way',
+      'Item: ' + out.item + '\n\n' + (link
+        ? 'They shared this link:\n' + link
+        : 'They marked it as sent another way (for example by email). No link was added.'));
+  }
+  return out;
 }
 
 function actionUploadFile_(payload) {
@@ -698,7 +743,8 @@ function actionAddNote_(payload) {
 
   const out = withLock_(function () {
     const table = loadTable_('Notes', ['ID', 'Date', 'From', 'Note']);
-    const row = { 'ID': nextId_(table, 'N'), 'Date': new Date(), 'From': asText_(from), 'Note': asText_(note) };
+    // "Client emailed" is only for your notes to the client; mark theirs.
+    const row = { 'ID': nextId_(table, 'N'), 'Date': new Date(), 'From': asText_(from), 'Note': asText_(note), 'Client emailed': 'From client' };
     appendRow_(table, row);
     return { id: row['ID'], date: row['Date'].toISOString(), from: from, note: note };
   });

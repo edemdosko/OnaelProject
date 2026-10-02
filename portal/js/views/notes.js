@@ -3,7 +3,11 @@
  * Replies are added by the project owner in the sheet's Notes tab.
  */
 
-import { h, formatWhen, draftTextarea, announce, loadingBlock, errorBlock } from '../ui.js';
+import { h, formatWhen, draftTextarea, announce, voiceButton, stopAllVoice, loadingBlock, errorBlock } from '../ui.js';
+
+export function leave() {
+  stopAllVoice();
+}
 
 const MAX = 2000;
 
@@ -43,7 +47,7 @@ function build(notes, main, ctx) {
   const form = h('form', { class: 'card composer', onsubmit: send },
     h('div', { class: 'field' }, h('label', { for: 'new-note', class: 'field-label' }, `Write a note to ${owner}`), box.el),
     error,
-    h('div', { class: 'q-footer' }, count, button));
+    h('div', { class: 'q-footer' }, count, h('div', { class: 'q-buttons' }, voiceButton(box.el), button)));
 
   async function send(event) {
     event.preventDefault();

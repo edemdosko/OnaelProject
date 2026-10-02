@@ -170,3 +170,124 @@ export function formatWhen(value) {
     hour: 'numeric', minute: '2-digit'
   });
 }
+
+/** "Next set" wording, shared by Home and Questions. */
+export function nextSetText(next, current = 'these answers') {
+  if (!next) return '';
+  if (next.afterPrevious) {
+    return next.opens
+      ? `Next, "${next.title}" opens as soon as you send ${current}, or on ${formatDate(next.opens)}.`
+      : `Next, "${next.title}" opens as soon as you send ${current}.`;
+  }
+  return `Next, "${next.title}" opens ${formatDate(next.opens)}.`;
+}
+
+// ---------------------------------------------------------------------------
+// Voice input
+// ---------------------------------------------------------------------------
+
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const activeVoice = new Set();
+
+/** True if this browser can turn speech into text. */
+export const canUseVoice = !!Recognition;
+
+/** Stops any microphone that is listening (used when leaving a page). */
+export function stopAllVoice() {
+  activeVoice.forEach((rec) => { try { rec.stop(); } catch (e) { /* already stopped */ } });
+  activeVoice.clear();
+}
+
+/**
+ * A "Speak" button that types what you say into `textarea`.
+ * Spoken words are added after any text already there. Each update fires an
+ * "input" event, so drafts and Save buttons react as if it were typed.
+ * Returns null when the browser has no speech recognition (the keyboard's own
+ * microphone still works there).
+ */
+export function voiceButton(textarea) {
+  if (!Recognition) return null;
+
+  const label = h('span', {}, 'Speak');
+  const button = h('button', {
+    type: 'button',
+    class: 'btn-voice',
+    'aria-pressed': 'false',
+    'aria-label': 'Speak your answer',
+    onclick: () => (rec ? rec.stop() : start())
+  }, micIcon(), label);
+
+  let rec = null;
+
+  function setListening(on) {
+    button.classList.toggle('is-listening', on);
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    button.setAttribute('aria-label', on ? 'Stop listening' : 'Speak your answer');
+    label.textContent = on ? 'Stop' : 'Speak';
+  }
+
+  function start() {
+    rec = new Recognition();
+    rec.lang = navigator.language || 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    let base = textarea.value;
+    if (base && !/\s$/.test(base)) base += ' ';
+    let finalText = '';
+
+    rec.onresult = (event) => {
+      let interim = '';
+      finalText = '';
+      for (let i = 0; i < event.results.length; i++) {
+        const part = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += part;
+        else interim += part;
+      }
+      textarea.value = base + finalText + interim;
+      textarea.dispatchEvent(new Event('input'));
+    };
+    rec.onerror = (event) => {
+      const messages = {
+        'not-allowed': 'Microphone access is blocked. Allow it in your browser settings, or tap the microphone on your keyboard instead.',
+        'service-not-allowed': 'Voice typing isn\'t available here. Tap the microphone on your keyboard instead.',
+        'no-speech': 'We didn\'t hear anything. Tap Speak and try again.',
+        'audio-capture': 'No microphone was found. Tap the microphone on your keyboard instead.',
+        'network': 'Voice typing needs an internet connection. Please try again.'
+      };
+      if (event.error !== 'aborted') announce(messages[event.error] || 'Voice typing stopped. Please try again.', 'error');
+    };
+    rec.onend = () => {
+      textarea.value = (base + finalText).replace(/\s+$/, '');
+      textarea.dispatchEvent(new Event('input'));
+      activeVoice.delete(rec);
+      rec = null;
+      setListening(false);
+    };
+
+    try {
+      rec.start();
+      activeVoice.add(rec);
+      setListening(true);
+      textarea.focus({ preventScroll: true });
+    } catch (e) {
+      rec = null;
+      announce('Voice typing couldn\'t start. Please try again.', 'error');
+    }
+  }
+
+  return button;
+}
+
+function micIcon() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('class', 'icon');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3');
+  svg.append(path);
+  return svg;
+}

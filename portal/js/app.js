@@ -163,6 +163,7 @@ function icon(name) {
 }
 
 function renderShell() {
+  if (!store.get(`portal:${slug}:helpSeen`)) setTimeout(showHelp, 400);
   applyAccent(project.accentColor);
   document.title = project.projectName || 'Project portal';
 
@@ -189,14 +190,61 @@ function renderShell() {
     h('header', { class: 'topbar' },
       h('div', { class: 'topbar-inner' },
         brand,
-        h('button', { class: 'btn-link topbar-signout', type: 'button', onclick: () => {
-          signOut('');
-          announce('You\'re signed out on this device.');
-        } }, 'Sign out'))),
+        h('div', { class: 'topbar-actions' },
+          h('button', { class: 'btn-link topbar-link', type: 'button', onclick: showHelp }, 'How it works'),
+          h('button', { class: 'btn-link topbar-link', type: 'button', onclick: () => {
+            signOut('');
+            announce('You\'re signed out on this device.');
+          } }, 'Sign out')))),
     nav,
     h('main', { id: 'main', class: 'main', tabindex: '-1' }),
     footer
   );
+}
+
+// ---------------------------------------------------------------------------
+// "How it works": a short guide, shown on the first visit to each project
+// ---------------------------------------------------------------------------
+
+const HELP_TEXT = {
+  home: () => 'See what\'s waiting on you, how the project is moving, and the key dates.',
+  questions: (owner) => 'Answer a few questions at a time. Type, or tap Speak and talk. Press Save under each answer, ' +
+    `then "Send answers to ${owner}" when the set is done. The next set appears when you send these, or on its date.`,
+  approvals: () => 'When a draft is ready, tap "Open the preview" to look at it. Then approve it, or ask for changes and say what you\'d like.',
+  plan: () => 'Every step and date from start to launch. It updates as the work moves along. Nothing to do here, just a place to look.',
+  files: (owner) => `Upload what's needed, up to 10 MB each. For bigger files, like videos, email them to ${owner} or share a Google Drive link.`,
+  notes: (owner) => `Send ${owner} a quick message any time. ${owner}'s replies appear here too.`
+};
+
+function showHelp() {
+  const owner = project.ownerName || 'us';
+  const steps = availableSections().map((name) =>
+    h('li', { class: 'help-step' },
+      h('span', { class: 'help-icon', 'aria-hidden': 'true' }, icon(VIEWS[name].icon)),
+      h('div', {},
+        h('p', { class: 'help-step-title' }, sectionLabel(name)),
+        h('p', { class: 'help-step-text' }, HELP_TEXT[name](owner)))));
+
+  const dialog = h('dialog', { class: 'help-dialog', 'aria-labelledby': 'help-title' },
+    h('div', { class: 'help-body' },
+      h('p', { class: 'eyebrow' }, project.projectName),
+      h('h2', { id: 'help-title', class: 'help-title', tabindex: '-1', autofocus: true }, 'How your portal works'),
+      h('p', { class: 'muted' }, `This is your private space to work with ${owner}. ` +
+        `Everything you save or send here goes straight to ${owner}, and you can come back any time.`),
+      h('ol', { class: 'help-steps' }, steps),
+      h('p', { class: 'help-foot muted small' }, 'This device remembers your passcode. On a shared device, tap Sign out when you\'re done.'),
+      h('button', { class: 'btn btn-primary btn-block', type: 'button', onclick: () => dialog.close() }, 'Got it')));
+
+  dialog.addEventListener('close', () => {
+    store.set(`portal:${slug}:helpSeen`, '1');
+    dialog.remove();
+  });
+  document.body.append(dialog);
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else dialog.setAttribute('open', '');
+  // Start at the top, focused on the title (not the button at the bottom).
+  dialog.scrollTop = 0;
+  dialog.querySelector('#help-title').focus({ preventScroll: true });
 }
 
 /** Applies Settings → accentColor to progress bars and highlights. */

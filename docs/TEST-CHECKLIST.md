@@ -16,14 +16,21 @@ Use your phone for the client steps. Tick each box as you go.
 
 - [ ] `https://<site>/<address>` shows the passcode screen
 - [ ] A wrong passcode shows "That passcode didn't match…"
-- [ ] The right passcode opens **Home** with "Hi <clientName>"
+- [ ] The right passcode opens **Home** with "<greeting> <clientName>"
 - [ ] Closing and reopening the browser goes straight to Home (passcode remembered)
 - [ ] **Sign out** returns to the passcode screen
 - [ ] `https://<site>/` shows "Please use the portal link…" and names no projects
 - [ ] `https://<site>/wrong-name` shows "This link isn't quite right"
 
+## How it works
+
+- [ ] On the first sign-in on a device, "How your portal works" opens, listing only the enabled sections
+- [ ] **Got it** closes it; it doesn't open again on that device
+- [ ] **How it works** in the header opens it any time
+
 ## Home
 
+- [ ] The greeting reads "<greeting> <clientName>", e.g. "Dear Pastor James"
 - [ ] "Waiting on you" shows the open set with "x of y answered" and the due date
 - [ ] "Next questions … open <date>" appears if a later set has Release = Auto
 - [ ] Progress and Key dates appear (Plan rows with **Key date = Yes**)
@@ -33,11 +40,13 @@ Use your phone for the client steps. Tick each box as you go.
 
 - [ ] Only visible sets show. Hidden sets' questions never appear.
 - [ ] Type an answer → "Not saved yet" → **Save** → "✓ Saved". It appears in the sheet as **Answered**.
+- [ ] Tap **Speak**, allow the microphone, say a sentence, tap **Stop**: the words appear in the box ("Not saved yet"), then **Save**
 - [ ] Turn on airplane mode, type, press **Save**: a clear error, and the text is still there
 - [ ] Reload with unsaved text: the text comes back, with a notice
 - [ ] **Send answers** stays disabled until every answer is saved
 - [ ] Send → confirm → "Sent!" message. Answers show under "Already sent", the sheet shows **Sent**, and you get an email.
 - [ ] A set with **Release = Hold** disappears even after its Opens date
+- [ ] With the next set on **Release = After previous**, sending the current set shows "Your next questions are ready below" and the new set appears at once
 
 ## Approvals
 
@@ -56,14 +65,17 @@ Use your phone for the client steps. Tick each box as you go.
 ## Files
 
 - [ ] Upload a photo from the phone. It shows "Uploaded", the file is in the uploads folder, the link is in the sheet, and you get an email.
-- [ ] A file over 10 MB is refused with a clear message
-- [ ] **I sent it another way** marks the item **Shared**, and **Undo** reverts it
+- [ ] The "Large files, like videos" tip shows at the top
+- [ ] A file over 10 MB opens the "send it another way" box with the file's size and the two options
+- [ ] **I sent it another way** with a Google Drive link: shows "Link shared", the link is in **Shared link**, and you get an email with it
+- [ ] An invalid link (no https://) is refused with a clear message; **Undo** reverts the item to Needed
 - [ ] Setting **Status = Received** in the sheet shows "Received" with no buttons
 
 ## Notes
 
 - [ ] Send a note. It shows as "You", appears in the sheet, and you get an email.
 - [ ] Add a reply row in the sheet (Date, From = your name, Note). It appears in the thread with the right date.
+- [ ] With clientEmail set: **Portal → Send note emails now** emails the client your note once; **Client emailed** is filled
 
 ## Daily emails (only if clientEmail is set)
 
