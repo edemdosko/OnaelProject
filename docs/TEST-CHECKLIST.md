@@ -44,6 +44,7 @@ Use your phone for the client steps. Tick each box as you go.
 - [ ] Turn on airplane mode, type, press **Save**: a clear error, and the text is still there
 - [ ] Reload with unsaved text: the text comes back, with a notice
 - [ ] **Send answers** stays disabled until every answer is saved
+- [ ] **Add to calendar** (next to the due date, and on Home): "Apple or Outlook calendar" opens your calendar app with an all-day event on the due date; "Google Calendar" opens Google Calendar filled in
 - [ ] Send → confirm → "Sent!" message. Answers show under "Already sent", the sheet shows **Sent**, and you get an email.
 - [ ] A set with **Release = Hold** disappears even after its Opens date
 - [ ] With the next set on **Release = After previous**, sending the current set shows "Your next questions are ready below" and the new set appears at once

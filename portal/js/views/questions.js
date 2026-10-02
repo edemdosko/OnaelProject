@@ -7,7 +7,7 @@
  *  - leaving the page with unsaved text asks first.
  */
 
-import { h, store, announce, formatDate, daysUntil, progressBar, chip, nextSetText, voiceButton, stopAllVoice, canUseVoice } from '../ui.js';
+import { h, store, announce, formatDate, daysUntil, progressBar, chip, nextSetText, voiceButton, stopAllVoice, canUseVoice, addToCalendar } from '../ui.js';
 
 let unsavedGuard = null;
 
@@ -57,7 +57,9 @@ function build(data, main, ctx) {
       h('header', { class: 'q-set-header' },
         h('h2', { id: `set-${slugify(set.set)}`, class: 'q-set-title' }, set.title || set.set),
         set.intro ? h('p', { class: 'muted' }, set.intro) : null,
-        set.due ? h('p', { class: 'q-due' }, dueText(set.due, ctx.project.today)) : null,
+        set.due ? h('div', { class: 'due-row' },
+          h('p', { class: 'q-due' }, dueText(set.due, ctx.project.today)),
+          daysUntil(set.due, ctx.project.today) >= 0 ? addToCalendar(dueEvent(set, ctx)) : null) : null,
         setFooter.progress),
       h('ol', { class: 'q-list' }, cards.map((c) => h('li', {}, c.el))),
       setFooter.el);
@@ -289,6 +291,18 @@ function dueText(due, today) {
   if (days === 1) return 'Due tomorrow';
   if (days < 0) return `It would help to have these soon (they were due ${formatDate(due)}).`;
   return `It would help to have these by ${formatDate(due)}.`;
+}
+
+/** Calendar event for a set's due date. */
+export function dueEvent(set, ctx) {
+  const owner = ctx.project.ownerName || 'us';
+  const title = set.title || set.set;
+  return {
+    title: `${ctx.project.projectName ? ctx.project.projectName + ': ' : ''}answers due (${title})`,
+    date: set.due,
+    details: `It would help ${owner} to have your answers to "${title}" by today. Short answers are fine.`,
+    url: `${location.origin}/${ctx.slug}`
+  };
 }
 
 function slugify(s) {

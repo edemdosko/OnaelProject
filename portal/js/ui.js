@@ -291,3 +291,92 @@ function micIcon() {
   svg.append(path);
   return svg;
 }
+
+// ---------------------------------------------------------------------------
+// "Add to calendar" for a due date
+// ---------------------------------------------------------------------------
+
+/**
+ * A small "Add to calendar" menu for an all-day event.
+ *   event = { title, date: "YYYY-MM-DD", details, url }
+ * Offers a calendar file (Apple Calendar, Outlook, most phones) and a
+ * Google Calendar link. Nothing is sent anywhere until the client taps one.
+ */
+export function addToCalendar(event) {
+  const start = event.date.replace(/-/g, '');
+  const end = nextDay(event.date).replace(/-/g, '');
+  const details = event.url ? `${event.details}\n\nOpen your portal: ${event.url}` : event.details;
+
+  const google = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    `&text=${encodeURIComponent(event.title)}` +
+    `&dates=${start}/${end}` +
+    `&details=${encodeURIComponent(details)}`;
+
+  function downloadIcs() {
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Client Project Portal//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${start}-${Math.random().toString(36).slice(2)}@client-portal`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${start}`,
+      `DTEND;VALUE=DATE:${end}`,
+      `SUMMARY:${icsText(event.title)}`,
+      `DESCRIPTION:${icsText(details)}`,
+      event.url ? `URL:${event.url}` : null,
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${icsText(event.title)}`,
+      'TRIGGER:-P1D',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].filter(Boolean);
+    const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
+    const link = h('a', { href: URL.createObjectURL(blob), download: `${slugify(event.title)}.ics` });
+    document.body.append(link);
+    link.click();
+    setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+    menu.open = false;
+  }
+
+  const menu = h('details', { class: 'calendar-menu' },
+    h('summary', {}, calendarIcon(), 'Add to calendar'),
+    h('div', { class: 'calendar-options' },
+      h('button', { type: 'button', class: 'calendar-option', onclick: downloadIcs }, 'Apple or Outlook calendar'),
+      h('a', { class: 'calendar-option', href: google, target: '_blank', rel: 'noopener', onclick: () => { menu.open = false; } },
+        'Google Calendar', h('span', { class: 'sr-only' }, ' (opens in a new tab)'))));
+  return menu;
+}
+
+function nextDay(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return next.toISOString().slice(0, 10);
+}
+
+/** Escapes text for a calendar file (commas, semicolons, new lines). */
+function icsText(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+
+function slugify(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'event';
+}
+
+function calendarIcon() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('class', 'icon');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4');
+  svg.append(path);
+  return svg;
+}

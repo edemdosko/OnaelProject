@@ -2,7 +2,8 @@
  * Home: what's waiting on the client, progress, and key dates.
  */
 
-import { h, formatDate, formatTarget, daysUntil, progressBar, chip, nextSetText } from '../ui.js';
+import { h, formatDate, formatTarget, daysUntil, progressBar, chip, nextSetText, addToCalendar } from '../ui.js';
+import { dueEvent } from './questions.js';
 
 export function render(main, ctx) {
   ctx.load('home', (project) => {
@@ -30,6 +31,7 @@ function build(p, ctx) {
         allAnswered ? 'All answered. Ready to send.' : `${done} of ${total} answered`,
         p.openSet.due ? ` · ${dueText(p.openSet.due, p.today)}` : ''),
       progressBar(done, total, `${ctx.label('questions')} answered`),
+      p.openSet.due && daysUntil(p.openSet.due, p.today) >= 0 ? addToCalendar(dueEvent(p.openSet, ctx)) : null,
       h('div', { class: 'card-actions' },
         h('a', { class: 'btn btn-primary', href: '#/questions' },
           allAnswered ? 'Review and send' : (done ? 'Continue answering' : 'Start answering')))));
