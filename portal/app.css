@@ -516,7 +516,7 @@ a.footer-brand:hover { color: var(--navy-900); }
   transition: background var(--transition), color var(--transition);
 }
 .q-card.is-saved .q-num { background: var(--project-accent); color: var(--project-accent-text); }
-.q-note { font-size: var(--text-sm); color: var(--color-muted); padding-left: calc(30px + var(--space-3)); }
+.q-note { font-size: var(--text-sm); color: var(--color-muted); padding-left: calc(30px + var(--space-3)); white-space: pre-line; }
 .q-input { resize: vertical; min-height: 6.5rem; line-height: 1.5; }
 .q-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .q-buttons { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
