@@ -16,9 +16,9 @@ without ever seeing a spreadsheet.
 |---|---|
 | `apps-script/` | The engine: `Code.gs` (actions), `Table.gs`, `Setup.gs`, `Notify.gs` |
 | `portal/` | The client-facing site: `index.html`, `theme.css`, `app.css`, `js/` |
-| `scripts/` | `write-config.js` (the Netlify build step) and `dev-server.js` (local preview) |
+| `scripts/` | `write-config.js` (Netlify build step), `dev-server.js` (local preview), `push-engine.js` (update every client's script) |
 | `test/` | A bare page for calling the API by hand |
-| `docs/` | Guides: [SETUP](docs/SETUP.md), [DAILY-USE](docs/DAILY-USE.md), [CLASP](docs/CLASP.md), [THEME](docs/THEME.md) |
+| `docs/` | Guides: [SETUP](docs/SETUP.md) (first project), [DEPLOY](docs/DEPLOY.md) (Netlify), [NEW-CLIENT](docs/NEW-CLIENT.md), [TEST-CHECKLIST](docs/TEST-CHECKLIST.md), [DAILY-USE](docs/DAILY-USE.md), [CLASP](docs/CLASP.md), [THEME](docs/THEME.md) |
 
 ## Preview the portal on your computer or phone
 

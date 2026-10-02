@@ -10,3 +10,6 @@ portal/config.js
 
 .DS_Store
 node_modules/
+
+# Each project's Script ID (used by scripts/push-engine.js)
+apps-script/projects.local.json

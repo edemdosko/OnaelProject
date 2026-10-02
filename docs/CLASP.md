@@ -79,15 +79,34 @@ Then reload the script editor tab to see the changes.
 **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**
 (the same steps as in SETUP.md).
 
-## Switching between clients
+## Updating every client at once
 
-Each client sheet has a different Script ID. Before pushing, put the right
-Script ID in `apps-script/.clasp.json`. Run `clasp push` once per client
-whenever the engine code changes.
+Each client's sheet has its own script. To send engine changes to all of them:
 
-Before pushing to a new client, remove or rename the previous client's
-`Seed*.gs` file, so their content isn't uploaded to the wrong project. Only
-one `Seed*.gs` file can define `seedProject`.
+1. List every project's Script ID in `apps-script/projects.local.json`
+   (gitignored), for example:
+
+   ```json
+   {
+     "_template": "TEMPLATE-SCRIPT-ID",
+     "lets-pray": "LETS-PRAY-SCRIPT-ID"
+   }
+   ```
+
+2. Run:
+
+   ```bash
+   node scripts/push-engine.js
+   ```
+
+   To update just one, add its name: `node scripts/push-engine.js lets-pray`.
+
+3. For each client (not the template), publish the new code: open its script →
+   **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
+
+`push-engine.js` sends only the engine files (`Code.gs`, `Table.gs`,
+`Setup.gs`, `Notify.gs`, `appsscript.json`). It never sends a `Seed*.gs` file,
+so one client's content can't reach another.
 
 ## Troubleshooting
 

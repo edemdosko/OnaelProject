@@ -197,8 +197,12 @@ function ensureTemplate_() {
 
   // Uploads folder: created by the script, so the narrow "drive.file"
   // permission covers it. You can move it anywhere in your Drive afterwards.
+  // If this sheet was copied from another project, its folder ID belongs to
+  // the other script, which this one can't open, so a new folder is made.
   const current = readSettings_();
-  if (enabledModules_(current).indexOf('files') !== -1 && !str_(current.driveFolderId)) {
+  const oldFolderId = str_(current.driveFolderId);
+  if (enabledModules_(current).indexOf('files') !== -1 && !folderReachable_(oldFolderId)) {
+    if (oldFolderId) report.push('The uploads folder in Settings belongs to another project, so a new one was created.');
     const folderName = (str_(current.projectName) || ss.getName()) + ' - Client uploads';
     const folder = Drive.Files.create({ name: folderName, mimeType: 'application/vnd.google-apps.folder' });
     const st = loadTable_('Settings', ['Key', 'Value']);
