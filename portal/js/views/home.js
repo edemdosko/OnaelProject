@@ -2,19 +2,13 @@
  * Home: what's waiting on the client, progress, and key dates.
  */
 
-import { h, formatDate, formatTarget, daysUntil, progressBar, chip, nextSetText, loadingBlock, errorBlock } from '../ui.js';
+import { h, formatDate, formatTarget, daysUntil, progressBar, chip, nextSetText } from '../ui.js';
 
 export function render(main, ctx) {
-  main.replaceChildren(loadingBlock());
-  ctx.api.getProject()
-    .then((project) => {
-      ctx.setProject(project);
-      main.replaceChildren(build(project, ctx));
-    })
-    .catch((err) => {
-      if (ctx.handleAuthError(err)) return;
-      main.replaceChildren(errorBlock(err.message, () => render(main, ctx)));
-    });
+  ctx.load('home', (project) => {
+    ctx.setProject(project);
+    main.replaceChildren(build(project, ctx));
+  });
 }
 
 function build(p, ctx) {

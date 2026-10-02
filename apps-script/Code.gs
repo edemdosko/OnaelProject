@@ -215,15 +215,25 @@ function requireModule_(settings, name) {
 // Settings and shared helpers
 // ===========================================================================
 
+// Settings are read once per request and reused (forgetSettings_ resets this
+// after anything changes the Settings tab).
+let settingsMemo_ = null;
+
 /** Settings tab as an object: { projectName: ..., passcode: ..., ... } */
 function readSettings_() {
+  if (settingsMemo_) return settingsMemo_;
   const table = loadTable_('Settings', ['Key', 'Value']);
   const out = {};
   table.rows.forEach(function (row) {
     const k = str_(row['Key']);
     if (k) out[k] = row['Value'];
   });
+  settingsMemo_ = out;
   return out;
+}
+
+function forgetSettings_() {
+  settingsMemo_ = null;
 }
 
 function projectTimezone_(settings) {

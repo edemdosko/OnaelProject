@@ -3,18 +3,12 @@
  * Uploads go to the project's private Drive folder (max 10 MB each).
  */
 
-import { h, fill, chip, announce, loadingBlock, errorBlock } from '../ui.js';
+import { h, fill, chip, announce } from '../ui.js';
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export function render(main, ctx) {
-  main.replaceChildren(loadingBlock('Loading your checklist…'));
-  ctx.api.getFiles()
-    .then((files) => main.replaceChildren(build(files, ctx)))
-    .catch((err) => {
-      if (ctx.handleAuthError(err)) return;
-      main.replaceChildren(errorBlock(err.message, () => render(main, ctx)));
-    });
+  ctx.load('files', (files) => main.replaceChildren(build(files, ctx)));
 }
 
 function build(files, ctx) {
@@ -144,7 +138,7 @@ function fileCard(initial, ctx) {
     draw();
     try {
       const base64 = await readAsBase64(chosen);
-      file = await ctx.api.uploadFile(file.id, chosen.name, chosen.type || 'application/octet-stream', base64);
+      file = Object.assign(initial, await ctx.api.uploadFile(file.id, chosen.name, chosen.type || 'application/octet-stream', base64));
       pending = null;
       announce(`Uploaded "${chosen.name}". Thank you!`, 'success');
     } catch (err) {
@@ -169,7 +163,7 @@ function fileCard(initial, ctx) {
     status.textContent = 'Saving…';
     draw();
     try {
-      file = await ctx.api.updateFileStatus(file.id, next, link);
+      file = Object.assign(initial, await ctx.api.updateFileStatus(file.id, next, link));
       if (next === 'Shared') {
         otherWayOpen = false;
         linkInput.value = '';

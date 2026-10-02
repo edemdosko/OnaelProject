@@ -59,7 +59,7 @@ function start() {
   if (store.get(passcodeKey)) {
     app.replaceChildren(loadingBlock('Opening your portal…'));
     api.getProject()
-      .then((p) => { project = p; renderShell(); route(); })
+      .then((p) => { project = p; cache.set('home', p); renderShell(); route(); setTimeout(preload, 300); })
       .catch((err) => {
         if (err.code === 'BAD_PASSCODE') return signOut('Your passcode has changed. Please enter the new one.');
         if (isAuthError(err)) return signOut(err.message);
@@ -112,9 +112,11 @@ function renderPasscode(message) {
     try {
       project = await api.signIn(passcode);
       store.set(passcodeKey, passcode);
+      cache.set('home', project); // Home can draw from this right away
       renderShell();
       if (!location.hash) location.hash = '#/home';
       route();
+      setTimeout(preload, 300);
     } catch (err) {
       error.textContent = err.message;
       button.disabled = false;
@@ -126,6 +128,7 @@ function renderPasscode(message) {
 
 function signOut(message) {
   store.remove(passcodeKey);
+  cache.clear();
   project = null;
   history.replaceState(null, '', location.pathname);
   renderPasscode(message);
@@ -273,7 +276,46 @@ function isLight(hex) {
 // Routing between sections
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Loading data: show what we have at once, refresh quietly in the background
+// ---------------------------------------------------------------------------
+
+// The latest data for each page, kept in memory for this visit only (it's
+// cleared on Sign out and when the page is closed).
+const cache = new Map();
+
+// Which request feeds which page (also used to preload pages in the background).
+const FETCHERS = {
+  home: () => api.getProject(),
+  questions: () => api.getQuestions(),
+  approvals: () => api.getApprovals(),
+  plan: () => api.getPlan(),
+  files: () => api.getFiles(),
+  notes: () => api.getNotes()
+};
+
+/** Loads every other enabled page in the background, so opening them is instant. */
+function preload() {
+  availableSections().forEach((name) => {
+    if (cache.has(name) || !FETCHERS[name]) return;
+    FETCHERS[name]().then((data) => { if (!cache.has(name)) cache.set(name, data); }).catch(() => { /* the page will retry */ });
+  });
+}
+
+/** True while someone is typing or has a panel open, so a refresh mustn't redraw. */
+function isBusy(main) {
+  const active = document.activeElement;
+  if (active && main.contains(active) && /^(INPUT|TEXTAREA)$/.test(active.tagName)) return true;
+  return !!main.querySelector('.is-dirty, .other-way, .btn-voice.is-listening, .decide-panel:not([hidden]), .confirm:not([hidden])');
+}
+
+function focusHeading(main) {
+  const heading = main.querySelector('h1');
+  if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus({ preventScroll: true }); }
+}
+
 let currentView = null;
+let routeId = 0;
 
 function route() {
   if (!project) return;
@@ -293,8 +335,48 @@ function route() {
   currentView = VIEWS[name].view;
   document.title = `${sectionLabel(name)} · ${project.projectName || 'Project portal'}`;
 
-  currentView.render(main, {
+  const myRoute = ++routeId;
+  const isCurrent = () => myRoute === routeId && document.getElementById('main') === main;
+
+  const ctx = {
     api,
+    /**
+     * Shows cached data at once (if any), then refreshes from the sheet.
+     * draw(data) builds the page. A refresh only redraws if the data changed
+     * and nobody is typing.
+     */
+    load(key, draw) {
+      const cached = cache.get(key);
+      let shown = false;
+      if (cached) {
+        draw(cached);
+        shown = true;
+        requestAnimationFrame(() => focusHeading(main));
+      } else {
+        main.replaceChildren(loadingBlock());
+      }
+      FETCHERS[key]()
+        .then((data) => {
+          const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
+          if (!isCurrent()) {
+            if (changed) cache.set(key, data);
+            return;
+          }
+          // Only swap the cached copy when the page redraws from it: the page
+          // updates its own copy as you save, so that copy must stay cached.
+          if (!shown || (changed && !isBusy(main))) {
+            cache.set(key, data);
+            draw(data);
+            if (!shown) requestAnimationFrame(() => focusHeading(main));
+          }
+        })
+        .catch((err) => {
+          if (!isCurrent() || ctx.handleAuthError(err)) return;
+          if (!shown) main.replaceChildren(errorBlock(err.message, () => route()));
+        });
+    },
+    /** Forget cached data after a change, so the next visit can't show old data. */
+    forget(...keys) { keys.forEach((k) => cache.delete(k)); },
     project,
     slug,
     label: sectionLabel,
@@ -309,14 +391,10 @@ function route() {
         : err.message);
       return true;
     }
-  });
+  };
+  currentView.render(main, ctx);
 
-  // Move focus to the new heading for keyboard and screen-reader users.
-  requestAnimationFrame(() => {
-    const heading = main.querySelector('h1');
-    if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus({ preventScroll: true }); }
-    window.scrollTo(0, 0);
-  });
+  window.scrollTo(0, 0);
 }
 
 // ---------------------------------------------------------------------------

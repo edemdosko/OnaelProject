@@ -103,6 +103,10 @@ function onOpen() {
   if (typeof seedProject === 'function') {
     menu.addSeparator().addItem('Load starter content', 'seedProject');
   }
+  // A project can add one-off changes in its own Changes*.gs file (not in git).
+  if (typeof projectChanges === 'function') {
+    menu.addItem(typeof PROJECT_CHANGES_LABEL === 'string' ? PROJECT_CHANGES_LABEL : 'Apply project changes', 'projectChanges');
+  }
   menu.addToUi();
 }
 
@@ -201,6 +205,7 @@ function ensureTemplate_() {
     added.push(k[0]);
   });
   if (added.length) report.push('Settings: added ' + added.join(', '));
+  forgetSettings_();
 
   // Uploads folder: created by the script, so the narrow "drive.file"
   // permission covers it. You can move it anywhere in your Drive afterwards.
@@ -215,6 +220,7 @@ function ensureTemplate_() {
     const st = loadTable_('Settings', ['Key', 'Value']);
     const row = st.rows.filter(function (r) { return str_(r['Key']) === 'driveFolderId'; })[0];
     updateRow_(st, row, { 'Value': folder.id });
+    forgetSettings_();
     report.push('Created Drive folder "' + folderName + '" for uploads (in My Drive; move it wherever you like)');
   }
 
@@ -258,6 +264,7 @@ function loadSeed_(data) {
       }
     });
     if (filled.length) report.push('Settings filled: ' + filled.join(', '));
+    forgetSettings_();
 
     Object.keys(data.tabs || {}).forEach(function (tabName) {
       const table = loadTable_(tabName);

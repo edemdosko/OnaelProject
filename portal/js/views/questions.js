@@ -7,7 +7,7 @@
  *  - leaving the page with unsaved text asks first.
  */
 
-import { h, store, announce, formatDate, daysUntil, progressBar, chip, nextSetText, voiceButton, stopAllVoice, canUseVoice, loadingBlock, errorBlock } from '../ui.js';
+import { h, store, announce, formatDate, daysUntil, progressBar, chip, nextSetText, voiceButton, stopAllVoice, canUseVoice } from '../ui.js';
 
 let unsavedGuard = null;
 
@@ -18,14 +18,10 @@ export function leave() {
 }
 
 export function render(main, ctx) {
-  leave();
-  main.replaceChildren(loadingBlock('Loading your questions…'));
-  ctx.api.getQuestions()
-    .then((data) => main.replaceChildren(build(data, main, ctx)))
-    .catch((err) => {
-      if (ctx.handleAuthError(err)) return;
-      main.replaceChildren(errorBlock(err.message, () => render(main, ctx)));
-    });
+  ctx.load('questions', (data) => {
+    leave();
+    main.replaceChildren(build(data, main, ctx));
+  });
 }
 
 function draftKey(ctx, id) {
@@ -174,6 +170,9 @@ function questionCard(q, number, ctx, onChange) {
     try {
       const result = await ctx.api.saveAnswer(q.id, sending);
       saved = result.answer;
+      // Keep the page's cached copy current, so coming back shows this answer.
+      q.answer = result.answer;
+      q.status = result.status;
       // Only clear the draft if nothing was typed while saving.
       if (textarea.value.trim() === saved.trim()) store.remove(key);
     } catch (err) {
@@ -264,6 +263,7 @@ function sendPanel(set, cards, owner, ctx, reload) {
     confirmBox.querySelector('button').textContent = 'Sending…';
     try {
       const result = await ctx.api.submitSet(set.set);
+      ctx.forget('questions', 'home');
       announce(result.opened && result.opened.length
         ? `Sent! ${owner} has your answers. Your next questions are ready below.`
         : `Sent! ${owner} has your answers.`, 'success');

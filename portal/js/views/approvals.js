@@ -3,18 +3,12 @@
  * and Approve / Request changes buttons. Notes are required for changes.
  */
 
-import { h, add, chip, formatDate, formatWhen, draftTextarea, announce, loadingBlock, errorBlock } from '../ui.js';
+import { h, add, chip, formatDate, formatWhen, draftTextarea, announce } from '../ui.js';
 
 const ORDER = { 'waiting for you': 0, 'changes requested': 1, 'approved': 2, 'coming soon': 3 };
 
 export function render(main, ctx) {
-  main.replaceChildren(loadingBlock('Loading items to review…'));
-  ctx.api.getApprovals()
-    .then((items) => main.replaceChildren(build(items, main, ctx)))
-    .catch((err) => {
-      if (ctx.handleAuthError(err)) return;
-      main.replaceChildren(errorBlock(err.message, () => render(main, ctx)));
-    });
+  ctx.load('approvals', (items) => main.replaceChildren(build(items, main, ctx)));
 }
 
 function build(items, main, ctx) {
@@ -136,6 +130,7 @@ function itemCard(item, main, ctx) {
     try {
       await ctx.api.decideApproval(item.id, mode, notes.value());
       notes.clear();
+      ctx.forget('approvals', 'home');
       announce(mode === 'Approved' ? 'Approved. Thank you!' : `Sent. ${owner} has your notes.`, 'success');
       render(main, ctx);
     } catch (err) {

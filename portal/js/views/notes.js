@@ -3,7 +3,7 @@
  * Replies are added by the project owner in the sheet's Notes tab.
  */
 
-import { h, formatWhen, draftTextarea, announce, voiceButton, stopAllVoice, loadingBlock, errorBlock } from '../ui.js';
+import { h, formatWhen, draftTextarea, announce, voiceButton, stopAllVoice } from '../ui.js';
 
 export function leave() {
   stopAllVoice();
@@ -12,13 +12,7 @@ export function leave() {
 const MAX = 2000;
 
 export function render(main, ctx) {
-  main.replaceChildren(loadingBlock('Loading notes…'));
-  ctx.api.getNotes()
-    .then((notes) => main.replaceChildren(build(notes, main, ctx)))
-    .catch((err) => {
-      if (ctx.handleAuthError(err)) return;
-      main.replaceChildren(errorBlock(err.message, () => render(main, ctx)));
-    });
+  ctx.load('notes', (notes) => main.replaceChildren(build(notes, main, ctx)));
 }
 
 function build(notes, main, ctx) {
@@ -59,6 +53,7 @@ function build(notes, main, ctx) {
     try {
       const added = await ctx.api.addNote(box.value());
       box.clear();
+      notes.unshift(added); // keep the cached copy current
       list.prepend(message(added, me));
       empty.hidden = true;
       announce(`Sent. ${owner} gets an email with your note.`, 'success');

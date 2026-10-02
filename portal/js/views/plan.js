@@ -2,16 +2,10 @@
  * Plan: read-only progress by phase. The title comes from Settings → planLabel.
  */
 
-import { h, chip, formatTarget, progressBar, loadingBlock, errorBlock } from '../ui.js';
+import { h, chip, formatTarget, progressBar } from '../ui.js';
 
 export function render(main, ctx) {
-  main.replaceChildren(loadingBlock('Loading the plan…'));
-  ctx.api.getPlan()
-    .then((plan) => main.replaceChildren(build(plan, ctx)))
-    .catch((err) => {
-      if (ctx.handleAuthError(err)) return;
-      main.replaceChildren(errorBlock(err.message, () => render(main, ctx)));
-    });
+  ctx.load('plan', (plan) => main.replaceChildren(build(plan, ctx)));
 }
 
 function statusChip(status) {

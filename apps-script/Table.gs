@@ -20,11 +20,8 @@ function loadTable_(tabName, requiredHeaders) {
       'The "' + tabName + '" tab is missing from the project sheet. ' +
       'Edem needs to run Portal → Set up tabs.');
   }
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-  const values = (lastRow > 0 && lastCol > 0)
-    ? sheet.getRange(1, 1, lastRow, lastCol).getValues()
-    : [[]];
+  // One read for the whole tab (each call to Google takes time).
+  const values = sheet.getLastRow() > 0 ? sheet.getDataRange().getValues() : [[]];
 
   const headers = values[0].map(function (h) { return String(h).trim(); });
   const col = {};
