@@ -137,6 +137,17 @@ function isoTime_(v) {
   return (v instanceof Date && !isNaN(v)) ? v.toISOString() : null;
 }
 
+/**
+ * True if a date cell includes a time of day. A date typed without a time
+ * is midnight in the sheet's timezone; sending it as a moment in time would
+ * show as the previous evening to someone further west, so we send it as a
+ * plain date instead.
+ */
+function hasTime_(v) {
+  if (!(v instanceof Date) || isNaN(v)) return false;
+  return Utilities.formatDate(v, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'HH:mm:ss') !== '00:00:00';
+}
+
 /** Whole days from date a to date b (both "YYYY-MM-DD"). */
 function daysBetween_(a, b) {
   return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);

@@ -670,7 +670,7 @@ function actionUploadFile_(payload) {
 function noteOut_(r) {
   return {
     id: str_(r['ID']),
-    date: isoTime_(r['Date']) || isoDate_(r['Date']) || null,
+    date: hasTime_(r['Date']) ? isoTime_(r['Date']) : (isoDate_(r['Date']) || null),
     from: str_(r['From']),
     note: str_(r['Note'])
   };

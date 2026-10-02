@@ -1,0 +1,3 @@
+# Every project address (/lets-pray, /next-client…) serves the same page.
+# Real files (app.css, js/…, assets/…) are served first, so they're unaffected.
+/*    /index.html    200

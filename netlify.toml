@@ -1,0 +1,18 @@
+# One Netlify site serves every project: /lets-pray, /next-client, …
+# The only build step writes portal/config.js from the PROJECTS environment
+# variable (Site configuration → Environment variables). See docs/DEPLOY.md.
+[build]
+  publish = "portal"
+  command = "node scripts/write-config.js"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Referrer-Policy = "same-origin"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"
