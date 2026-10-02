@@ -63,7 +63,7 @@ const SCHEMA = {
 // Settings keys, with a default value and a help line for the Help column.
 const SETTINGS_KEYS = [
   ['projectName', '', 'Shown at the top of the portal.'],
-  ['clientName', '', 'Name used in greetings and emails, e.g. Pastor James.'],
+  ['clientName', '', 'Name used in greetings and emails, e.g. Sam.'],
   ['greeting', 'Dear', 'How Home greets the client, e.g. Dear or Hi.'],
   ['ownerName', 'Edem', 'Your name, as the client sees it.'],
   ['portalUrl', '', 'The Netlify address of this portal. Used in client emails.'],

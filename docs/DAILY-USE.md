@@ -91,7 +91,7 @@ you're still in the middle of writing.
 ## Greeting and wording
 
 **Settings → greeting** sets how Home greets the client: `Dear` gives
-"Dear Pastor James". **Settings → clientName** is the name used.
+"Dear Sam". **Settings → clientName** is the name used.
 
 ## Turning sections on or off
 

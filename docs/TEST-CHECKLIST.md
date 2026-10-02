@@ -30,7 +30,7 @@ Use your phone for the client steps. Tick each box as you go.
 
 ## Home
 
-- [ ] The greeting reads "<greeting> <clientName>", e.g. "Dear Pastor James"
+- [ ] The greeting reads "<greeting> <clientName>", e.g. "Dear Sam"
 - [ ] "Waiting on you" shows the open set with "x of y answered" and the due date
 - [ ] "Next questions … open <date>" appears if a later set has Release = Auto
 - [ ] Progress and Key dates appear (Plan rows with **Key date = Yes**)

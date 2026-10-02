@@ -16,3 +16,7 @@ apps-script/projects.local.json
 
 # One-off changes for a single project (client content)
 apps-script/Changes*.gs
+
+# Claude Code skill and notes: kept on this Mac only
+.claude/
+CLAUDE.md
