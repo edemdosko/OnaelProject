@@ -1,0 +1,4 @@
+# Push only the script files and the manifest. Everything else stays local.
+**/**
+!*.gs
+!appsscript.json

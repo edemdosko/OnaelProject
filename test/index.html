@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal API test</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 16px; color: #1a2332; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
+    label { display: block; font-weight: 600; margin-top: .75rem; }
+    input, textarea { width: 100%; box-sizing: border-box; font: inherit; padding: .5rem; border: 1px solid #9aa3b2; border-radius: 4px; }
+    textarea { min-height: 4rem; }
+    button { font: inherit; font-weight: 600; padding: .5rem 1rem; margin: .5rem .5rem 0 0; border: 0; border-radius: 4px; background: #2f7a70; color: #fff; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #b4791f; outline-offset: 2px; }
+    pre { background: #f7f8fa; border: 1px solid #dfe3e9; border-radius: 8px; padding: 12px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+    .ok { color: #3f7a4f; } .bad { color: #b3453c; }
+    small { color: #4d5566; }
+  </style>
+</head>
+<body>
+  <h1>Portal API test</h1>
+  <p><small>A bare page for checking the Apps Script engine. Not for clients.</small></p>
+
+  <label for="url">Script URL (ends in /exec)</label>
+  <input id="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+  <small>Remembered on this computer.</small>
+
+  <label for="passcode">Passcode</label>
+  <input id="passcode" type="password" autocomplete="off">
+  <small>Not remembered.</small>
+
+  <h2>1. Is it running?</h2>
+  <button data-action="ping">Ping (no passcode)</button>
+  <button data-action="health">Health check</button>
+
+  <h2>2. Questions</h2>
+  <button data-action="getQuestions">getQuestions</button>
+
+  <label for="qid">Question ID</label>
+  <input id="qid" value="Q-001">
+  <label for="answer">Answer</label>
+  <textarea id="answer">Test answer from the test page.</textarea>
+  <button data-action="saveAnswer">saveAnswer</button>
+
+  <h2>3. Any action</h2>
+  <label for="anyAction">Action</label>
+  <input id="anyAction" value="getProject">
+  <label for="anyPayload">Payload (JSON)</label>
+  <textarea id="anyPayload">{}</textarea>
+  <button data-action="any">Send</button>
+
+  <h2>Result</h2>
+  <p id="status" aria-live="polite"></p>
+  <pre id="out">Nothing yet.</pre>
+
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    try { $('url').value = localStorage.getItem('testScriptUrl') || ''; } catch (e) {}
+    $('url').addEventListener('change', function () {
+      try { localStorage.setItem('testScriptUrl', $('url').value.trim()); } catch (e) {}
+    });
+
+    // Same request shape the portal uses: POST, text/plain, no custom headers.
+    async function call(action, passcode, payload) {
+      var res = await fetch($('url').value.trim(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: action, passcode: passcode, payload: payload || {} })
+      });
+      var text = await res.text();
+      try { return JSON.parse(text); }
+      catch (e) { throw new Error('The script did not return JSON. First 300 characters:\n' + text.slice(0, 300)); }
+    }
+
+    document.querySelectorAll('button[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        if (!$('url').value.trim()) { $('status').textContent = 'Paste the script URL first.'; return; }
+        var which = btn.dataset.action;
+        var pass = $('passcode').value;
+        var action = which, payload = {};
+        if (which === 'ping') { action = 'health'; pass = ''; }
+        if (which === 'saveAnswer') payload = { id: $('qid').value.trim(), answer: $('answer').value };
+        if (which === 'any') {
+          action = $('anyAction').value.trim();
+          try { payload = JSON.parse($('anyPayload').value || '{}'); }
+          catch (e) { $('status').textContent = 'The payload is not valid JSON.'; return; }
+        }
+        document.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+        $('status').textContent = 'Calling ' + action + '…';
+        $('status').className = '';
+        var started = Date.now();
+        try {
+          var result = await call(action, pass, payload);
+          $('status').textContent = (result.ok ? '✓ ok' : '✗ ' + result.error.code + ': ' + result.error.message) + ' (' + (Date.now() - started) + ' ms)';
+          $('status').className = result.ok ? 'ok' : 'bad';
+          $('out').textContent = JSON.stringify(result, null, 2);
+        } catch (err) {
+          $('status').textContent = '✗ Could not reach the script. Check the URL ends in /exec and the deployment has access "Anyone".';
+          $('status').className = 'bad';
+          $('out').textContent = String(err);
+        } finally {
+          document.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
