@@ -29,7 +29,8 @@ const SCHEMA = {
     // Options: choices shown as tappable buttons, one per line (optional).
     // Follows up: the ID of an earlier question this one builds on (optional).
     // Plan step: the ID of the Plan step this question feeds (optional).
-    headers: ['ID', 'Set', 'Order', 'Question', 'Helpful note', 'Answer', 'Status', 'Answered at', 'Options', 'Follows up', 'Plan step'],
+    // Recap: one line in your voice shown on the card instead of quoting the earlier answer (optional).
+    headers: ['ID', 'Set', 'Order', 'Question', 'Helpful note', 'Answer', 'Status', 'Answered at', 'Options', 'Follows up', 'Plan step', 'Recap'],
     required: ['ID', 'Set', 'Question', 'Answer', 'Status'],
     times: ['Answered at'],
     dropdowns: { 'Status': ['Not started', 'Answered', 'Sent', 'Reviewed'] }

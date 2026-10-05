@@ -542,6 +542,7 @@ a.footer-brand:hover { color: var(--navy-900); }
 .q-followup-title { font-weight: var(--weight-semibold); color: var(--accent-700); }
 .q-followup-question { font-style: italic; }
 .q-followup-answer { white-space: pre-line; color: var(--color-muted); }
+.q-followup-recap { white-space: pre-line; line-height: 1.5; }
 .q-followup-said { font-weight: var(--weight-semibold); color: var(--color-text); }
 
 /* Tappable choices (a styled radio group) */

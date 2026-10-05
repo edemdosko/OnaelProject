@@ -138,9 +138,18 @@ function splitChoice(answer, options) {
   return { choice: '', comment: text };
 }
 
-/** "Edem's follow-up to your earlier answer", quoting the question and answer. */
+/**
+ * The follow-up box. With a Recap (one line written by the owner) it shows
+ * "Edem's follow-up" and that line; otherwise it quotes the earlier question
+ * and the client's answer.
+ */
 function followUpBox(q, ctx) {
   const owner = ctx.project.ownerName || 'Our';
+  if (q.recap) {
+    return h('div', { class: 'q-followup' },
+      h('p', { class: 'q-followup-title' }, `${owner}'s follow-up`),
+      h('p', { class: 'q-followup-recap' }, q.recap));
+  }
   const answer = q.followsUp.answer || '';
   const short = answer.length > 220 ? `${answer.slice(0, 220).trim()}…` : answer;
   return h('div', { class: 'q-followup' },
@@ -228,7 +237,7 @@ function questionCard(q, number, ctx, onChange) {
     hasOptions
       ? h('p', { id: labelId, class: 'q-label' }, questionText)
       : h('label', { id: labelId, class: 'q-label', for: inputId }, questionText),
-    q.followsUp ? followUpBox(q, ctx) : null,
+    q.recap || q.followsUp ? followUpBox(q, ctx) : null,
     q.note ? h('p', { id: noteId, class: 'q-note' }, q.note) : null,
     choices,
     textarea,

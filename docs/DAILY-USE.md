@@ -16,6 +16,7 @@ answers, decides on an approval, uploads a file, or leaves a note.
 | Add a question | Add a row: **Set**, **Order**, **Question**. Then **Portal → Fill missing IDs** |
 | Let the client pick from choices | **Questions** → **Options**: type each choice on its own line (in the cell, press **Ctrl+Enter** on Windows or **⌘+Enter** on a Mac for a new line). The client taps one and can add a comment; both are saved in **Answer**, the choice on the first line. |
 | Show a question as your follow-up to an earlier answer | **Questions** → **Follows up**: type the earlier question's ID (e.g. Q-007). The card quotes that question and the client's answer. |
+| Say in your own words why you're asking | **Questions** → **Recap**: one short line, e.g. "You said you'd like a short devotional, so here are three ways to shape it." The card shows "Edem's follow-up" and your line instead of the quote. Best when the earlier answer was long or just "Yes". |
 | Tie a question to a step of the plan | **Questions** → **Plan step**: type the step's ID from **Plan** (e.g. P-005). Questions with the same step are grouped under the step's name and date, so keep them next to each other in **Order**. |
 
 A set the client has already sent stays visible under "Already sent", even if

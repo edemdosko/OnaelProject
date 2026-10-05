@@ -50,6 +50,7 @@ Use your phone for the client steps. Tick each box as you go.
 - [ ] With the next set on **Release = After previous**, sending the current set shows "Your next questions are ready below" and the new set appears at once
 - [ ] A question with **Options** shows tappable choices and a comment box. Tap one, add a comment, **Save**: the sheet's **Answer** has the choice, a blank line, then the comment. Reload: the same choice is selected and the comment is back.
 - [ ] A question with **Follows up** shows "Edem's follow-up to your earlier answer" with the earlier question and answer
+- [ ] A question with a **Recap** shows "Edem's follow-up" and your line instead of the quote
 - [ ] Questions with **Plan step** sit under a heading with the step's name and date
 - [ ] Adding a new set dated before a set the client already sent leaves the sent set under "Already sent"
 

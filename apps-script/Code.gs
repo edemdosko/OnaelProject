@@ -329,6 +329,7 @@ function buildQuestionsView_(settings) {
             answer: str_(q['Answer']),
             status: str_(q['Status']) || 'Not started',
             options: optionsList_(q['Options']),
+            recap: str_(q['Recap']),
             followsUp: null,
             planStep: null,
             _followsUpId: str_(q['Follows up']),
