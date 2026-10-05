@@ -520,6 +520,49 @@ a.footer-brand:hover { color: var(--navy-900); }
 .q-card.is-saved .q-num { background: var(--project-accent); color: var(--project-accent-text); }
 .q-note { font-size: var(--text-sm); color: var(--color-muted); padding-left: calc(30px + var(--space-3)); white-space: pre-line; }
 .q-input { resize: vertical; min-height: 6.5rem; line-height: 1.5; }
+.q-options + .q-input { min-height: 3.5rem; }
+
+/* Plan step heading above a group of follow-up questions */
+.q-step { padding: var(--space-2) var(--space-1) 0; }
+.q-step-label { font-size: var(--text-xs); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--accent-700); }
+.q-step-title { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+.q-step-date { font-weight: var(--weight-medium); color: var(--color-muted); }
+
+/* "Edem's follow-up to your earlier answer" */
+.q-followup {
+  display: grid;
+  gap: var(--space-1);
+  margin-left: calc(30px + var(--space-3));
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-100);
+  border-left: 3px solid var(--project-accent);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+.q-followup-title { font-weight: var(--weight-semibold); color: var(--accent-700); }
+.q-followup-question { font-style: italic; }
+.q-followup-answer { white-space: pre-line; color: var(--color-muted); }
+.q-followup-said { font-weight: var(--weight-semibold); color: var(--color-text); }
+
+/* Tappable choices (a styled radio group) */
+.q-options { display: grid; gap: var(--space-2); }
+.q-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  line-height: 1.45;
+  transition: border-color var(--transition), background var(--transition);
+}
+.q-option:hover { border-color: var(--accent-600); }
+.q-option input { margin-top: .2em; accent-color: var(--accent-600); flex: 0 0 auto; width: 1.1rem; height: 1.1rem; }
+.q-option:has(input:checked) { border-color: var(--accent-600); background: var(--accent-100); font-weight: var(--weight-medium); }
+.q-option:has(input:focus-visible) { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 480px) { .q-followup { margin-left: 0; } }
 .q-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .q-buttons { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
 .q-state { font-size: var(--text-sm); color: var(--color-muted); }

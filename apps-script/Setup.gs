@@ -26,7 +26,10 @@ const SCHEMA = {
   },
   Questions: {
     idPrefix: 'Q',
-    headers: ['ID', 'Set', 'Order', 'Question', 'Helpful note', 'Answer', 'Status', 'Answered at'],
+    // Options: choices shown as tappable buttons, one per line (optional).
+    // Follows up: the ID of an earlier question this one builds on (optional).
+    // Plan step: the ID of the Plan step this question feeds (optional).
+    headers: ['ID', 'Set', 'Order', 'Question', 'Helpful note', 'Answer', 'Status', 'Answered at', 'Options', 'Follows up', 'Plan step'],
     required: ['ID', 'Set', 'Question', 'Answer', 'Status'],
     times: ['Answered at'],
     dropdowns: { 'Status': ['Not started', 'Answered', 'Sent', 'Reviewed'] }
@@ -473,9 +476,21 @@ function runHealthChecks_() {
       orphans.length ? 'These questions name a Set that isn\'t in the Sets tab: ' + orphans.join(', ') : 'Every question belongs to a set.');
 
     const badRelease = tables.Sets.rows.filter(function (r) {
-      return ['auto', 'open now', 'hold', ''].indexOf(key_(r['Release'])) === -1;
+      return ['auto', 'open now', 'hold', 'after previous', ''].indexOf(key_(r['Release'])) === -1;
     }).map(function (r) { return str_(r['Set']); });
-    if (badRelease.length) add('Release values', false, 'Use Auto, Open now, or Hold for: ' + badRelease.join(', '));
+    if (badRelease.length) add('Release values', false, 'Use Auto, Open now, Hold, or After previous for: ' + badRelease.join(', '));
+
+    // Follow-up links: "Follows up" must name a question, "Plan step" a Plan row.
+    const questionIds = tables.Questions.rows.map(function (q) { return str_(q['ID']); });
+    const planIds = tables.Plan ? tables.Plan.rows.map(function (p) { return str_(p['ID']); }) : [];
+    const badLinks = [];
+    tables.Questions.rows.forEach(function (q) {
+      const up = str_(q['Follows up']);
+      const step = str_(q['Plan step']);
+      if (up && questionIds.indexOf(up) === -1) badLinks.push(str_(q['ID']) + ' → Follows up "' + up + '"');
+      if (step && planIds.indexOf(step) === -1) badLinks.push(str_(q['ID']) + ' → Plan step "' + step + '"');
+    });
+    if (badLinks.length) add('Follow-up links', false, 'These IDs don\'t exist, so the link won\'t show: ' + badLinks.join(', '));
   }
 
   return { ok: checks.every(function (c) { return c.ok; }), checks: checks };

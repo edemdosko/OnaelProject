@@ -14,6 +14,13 @@ answers, decides on an approval, uploads a file, or leaves a note.
 | Let the client edit answers they already sent | **Questions** → set those rows' **Status** back to **Answered** |
 | Mark answers as read | **Questions** → **Status** → **Reviewed** (the client sees no change) |
 | Add a question | Add a row: **Set**, **Order**, **Question**. Then **Portal → Fill missing IDs** |
+| Let the client pick from choices | **Questions** → **Options**: type each choice on its own line (in the cell, press **Ctrl+Enter** on Windows or **⌘+Enter** on a Mac for a new line). The client taps one and can add a comment; both are saved in **Answer**, the choice on the first line. |
+| Show a question as your follow-up to an earlier answer | **Questions** → **Follows up**: type the earlier question's ID (e.g. Q-007). The card quotes that question and the client's answer. |
+| Tie a question to a step of the plan | **Questions** → **Plan step**: type the step's ID from **Plan** (e.g. P-005). Questions with the same step are grouped under the step's name and date, so keep them next to each other in **Order**. |
+
+A set the client has already sent stays visible under "Already sent", even if
+you later add a new set with an earlier **Opens** date. If **Follows up** or
+**Plan step** names an ID that doesn't exist, **Portal → Check health** says so.
 
 ## Approvals
 

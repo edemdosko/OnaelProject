@@ -276,12 +276,13 @@ function isHttpUrl_(s) {
  *   "After previous"  → as soon as the previous set is sent, or on its Opens
  *                       date, whichever comes first
  * "Previous" means the set with the next-earliest Opens date. Sets without
- * questions are ignored.
+ * questions are ignored. A set the client already sent stays visible (unless
+ * on Hold), even if a new set is later added before it.
  */
-function isSetVisible_(setRow, today, previousSent) {
+function isSetVisible_(setRow, today, previousSent, submitted) {
   const release = key_(setRow['Release']);
   if (release === 'hold') return false;
-  if (release === 'open now') return true;
+  if (release === 'open now' || submitted) return true;
   const opens = isoDate_(setRow['Opens']);
   if (opens && opens <= today) return true;
   return release === 'after previous' && previousSent;
@@ -326,7 +327,12 @@ function buildQuestionsView_(settings) {
             question: str_(q['Question']),
             note: str_(q['Helpful note']),
             answer: str_(q['Answer']),
-            status: str_(q['Status']) || 'Not started'
+            status: str_(q['Status']) || 'Not started',
+            options: optionsList_(q['Options']),
+            followsUp: null,
+            planStep: null,
+            _followsUpId: str_(q['Follows up']),
+            _planStepId: str_(q['Plan step'])
           };
         }),
         _setRow: row
@@ -339,7 +345,7 @@ function buildQuestionsView_(settings) {
   let previousSent = false;
 
   all.forEach(function (s) {
-    if (isSetVisible_(s._setRow, today, previousSent)) {
+    if (isSetVisible_(s._setRow, today, previousSent, s.submitted)) {
       visible.push(s);
     } else if (s.release !== 'hold' && !nextSet) {
       // The first hidden set (not on Hold) is "next". Its questions stay hidden.
@@ -352,7 +358,46 @@ function buildQuestionsView_(settings) {
     previousSent = s.submitted;
   });
 
+  linkFollowUps_(visible, settings);
   return { today: today, sets: visible, nextSet: nextSet, setsTable: sets, questionsTable: questions };
+}
+
+/** "Options" cell → list of choices, one per line (blank lines ignored). */
+function optionsList_(cell) {
+  return str_(cell).split(/\r?\n/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s; })
+    .slice(0, 10);
+}
+
+/**
+ * Fills followsUp {question, answer} and planStep {id, step, date, label} on
+ * visible questions. An earlier question is only shown when its own set is
+ * visible too, so hidden question text never reaches the portal.
+ */
+function linkFollowUps_(visibleSets, settings) {
+  const shown = {};
+  visibleSets.forEach(function (s) { s.questions.forEach(function (q) { shown[q.id] = q; }); });
+
+  let plan = null;
+  const wantsPlan = visibleSets.some(function (s) { return s.questions.some(function (q) { return q._planStepId; }); });
+  if (wantsPlan && enabledModules_(settings).indexOf('plan') !== -1 && SpreadsheetApp.getActive().getSheetByName('Plan')) {
+    plan = loadTable_('Plan', ['ID', 'Step']);
+  }
+
+  visibleSets.forEach(function (s) {
+    s.questions.forEach(function (q) {
+      const earlier = shown[q._followsUpId];
+      if (earlier && earlier !== q) q.followsUp = { id: earlier.id, question: earlier.question, answer: earlier.answer };
+      const step = plan && findById_(plan, q._planStepId);
+      if (step && str_(step['Step'])) {
+        const t = dateOrLabel_(step['Target date']);
+        q.planStep = { id: str_(step['ID']), step: str_(step['Step']), date: t.date, label: t.label };
+      }
+      delete q._followsUpId;
+      delete q._planStepId;
+    });
+  });
 }
 
 function findVisibleSet_(view, setName) {

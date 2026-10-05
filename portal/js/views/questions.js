@@ -61,7 +61,7 @@ function build(data, main, ctx) {
           h('p', { class: 'q-due' }, dueText(set.due, ctx.project.today)),
           daysUntil(set.due, ctx.project.today) >= 0 ? addToCalendar(dueEvent(set, ctx)) : null) : null,
         setFooter.progress),
-      h('ol', { class: 'q-list' }, cards.map((c) => h('li', {}, c.el))),
+      h('ol', { class: 'q-list' }, withStepHeaders(set.questions, cards, ctx)),
       setFooter.el);
   });
 
@@ -99,6 +99,56 @@ function build(data, main, ctx) {
     sentSection);
 }
 
+/**
+ * List items for a set's cards. When questions are tied to a Plan step, a small
+ * heading names the step (and its date) above the first question of each step.
+ */
+function withStepHeaders(questions, cards, ctx) {
+  const items = [];
+  let lastStep = null;
+  questions.forEach((q, i) => {
+    const step = q.planStep;
+    if (step && step.id !== lastStep) {
+      const when = step.date ? formatDate(step.date) : step.label;
+      items.push(h('li', { class: 'q-step' },
+        h('p', { class: 'q-step-label' }, `${ctx.label('plan')} step`),
+        h('h3', { class: 'q-step-title' }, step.step, when ? h('span', { class: 'q-step-date' }, ` · ${when}`) : null)));
+    }
+    lastStep = step ? step.id : null;
+    items.push(h('li', {}, cards[i].el));
+  });
+  return items;
+}
+
+/**
+ * Choice questions save one answer: the chosen option on the first line, then
+ * a blank line and the client's comment (if any). These two split it back.
+ */
+function joinChoice(choice, comment) {
+  return [choice, comment.trim()].filter(Boolean).join('\n\n');
+}
+
+function splitChoice(answer, options) {
+  const text = answer || '';
+  const firstBreak = text.indexOf('\n\n');
+  const head = firstBreak === -1 ? text : text.slice(0, firstBreak);
+  if (options.includes(head.trim())) {
+    return { choice: head.trim(), comment: firstBreak === -1 ? '' : text.slice(firstBreak + 2) };
+  }
+  return { choice: '', comment: text };
+}
+
+/** "Edem's follow-up to your earlier answer", quoting the question and answer. */
+function followUpBox(q, ctx) {
+  const owner = ctx.project.ownerName || 'Our';
+  const answer = q.followsUp.answer || '';
+  const short = answer.length > 220 ? `${answer.slice(0, 220).trim()}…` : answer;
+  return h('div', { class: 'q-followup' },
+    h('p', { class: 'q-followup-title' }, `${owner}'s follow-up to your earlier answer`),
+    h('p', { class: 'q-followup-question' }, `“${q.followsUp.question}”`),
+    answer ? h('p', { class: 'q-followup-answer' }, h('span', { class: 'q-followup-said' }, 'You said: '), short) : null);
+}
+
 // ---------------------------------------------------------------------------
 // One question card
 // ---------------------------------------------------------------------------
@@ -114,40 +164,77 @@ function questionCard(q, number, ctx, onChange) {
   if (draft !== null && !restored) store.remove(key);
 
   const inputId = `answer-${q.id}`;
+  const labelId = `question-${q.id}`;
   const noteId = `note-${q.id}`;
   const stateId = `state-${q.id}`;
+  const options = q.options || [];
+  const hasOptions = options.length > 0;
+  let choice = '';
+
+  // What would be saved right now: the typed text, or the choice + comment.
+  const current = () => (hasOptions ? joinChoice(choice, textarea.value) : textarea.value);
+
+  const changed = () => {
+    store.set(key, current());
+    errorMessage = '';
+    update();
+    onChange();
+  };
 
   const textarea = h('textarea', {
     id: inputId,
     class: 'q-input',
-    rows: '3',
-    maxlength: '5000',
+    rows: hasOptions ? '2' : '3',
+    maxlength: hasOptions ? '4800' : '5000',
+    placeholder: hasOptions ? 'Add a comment (optional)' : null,
+    'aria-label': hasOptions ? 'Your comment (optional)' : null,
     'aria-describedby': [q.note ? noteId : null, stateId].filter(Boolean).join(' '),
-    oninput: () => {
-      store.set(key, textarea.value);
-      errorMessage = '';
-      autoGrow();
-      update();
-      onChange();
-    },
+    oninput: () => { autoGrow(); changed(); },
     onkeydown: (e) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
     }
   });
-  textarea.value = restored ? draft : saved;
+  const startText = restored ? draft : saved;
+  if (hasOptions) {
+    const parts = splitChoice(startText, options);
+    choice = parts.choice;
+    textarea.value = parts.comment;
+  } else {
+    textarea.value = startText;
+  }
+
+  const choices = hasOptions
+    ? h('div', { class: 'q-options', role: 'radiogroup', 'aria-labelledby': labelId },
+      options.map((opt) => h('label', { class: 'q-option' },
+        h('input', {
+          type: 'radio',
+          name: `choice-${q.id}`,
+          value: opt,
+          checked: opt === choice,
+          onchange: () => { choice = opt; changed(); }
+        }),
+        h('span', {}, opt))))
+    : null;
 
   const stateText = h('span', { id: stateId, class: 'q-state', 'aria-live': 'polite' });
   const button = h('button', { class: 'btn btn-primary btn-small', type: 'button', onclick: save }, 'Save');
 
+  const questionText = [
+    h('span', { class: 'q-num', 'aria-hidden': 'true' }, String(number)),
+    h('span', {}, q.question)
+  ];
+
   const el = h('article', { class: 'card q-card' },
-    h('label', { class: 'q-label', for: inputId },
-      h('span', { class: 'q-num', 'aria-hidden': 'true' }, String(number)),
-      h('span', {}, q.question)),
+    hasOptions
+      ? h('p', { id: labelId, class: 'q-label' }, questionText)
+      : h('label', { id: labelId, class: 'q-label', for: inputId }, questionText),
+    q.followsUp ? followUpBox(q, ctx) : null,
     q.note ? h('p', { id: noteId, class: 'q-note' }, q.note) : null,
+    choices,
     textarea,
     h('div', { class: 'q-footer' }, stateText, h('div', { class: 'q-buttons' }, voiceButton(textarea), button)));
 
-  function isDirty() { return textarea.value.trim() !== saved.trim(); }
+  function isDirty() { return current().trim() !== saved.trim(); }
 
   function update() {
     const dirty = isDirty();
@@ -168,7 +255,7 @@ function questionCard(q, number, ctx, onChange) {
     saving = true;
     errorMessage = '';
     update();
-    const sending = textarea.value.trim();
+    const sending = current().trim();
     try {
       const result = await ctx.api.saveAnswer(q.id, sending);
       saved = result.answer;
@@ -176,7 +263,7 @@ function questionCard(q, number, ctx, onChange) {
       q.answer = result.answer;
       q.status = result.status;
       // Only clear the draft if nothing was typed while saving.
-      if (textarea.value.trim() === saved.trim()) store.remove(key);
+      if (current().trim() === saved.trim()) store.remove(key);
     } catch (err) {
       if (ctx.handleAuthError(err)) return;
       errorMessage = `${err.message} Your answer is still here.`;

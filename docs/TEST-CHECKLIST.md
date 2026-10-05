@@ -48,6 +48,10 @@ Use your phone for the client steps. Tick each box as you go.
 - [ ] Send → confirm → "Sent!" message. Answers show under "Already sent", the sheet shows **Sent**, and you get an email.
 - [ ] A set with **Release = Hold** disappears even after its Opens date
 - [ ] With the next set on **Release = After previous**, sending the current set shows "Your next questions are ready below" and the new set appears at once
+- [ ] A question with **Options** shows tappable choices and a comment box. Tap one, add a comment, **Save**: the sheet's **Answer** has the choice, a blank line, then the comment. Reload: the same choice is selected and the comment is back.
+- [ ] A question with **Follows up** shows "Edem's follow-up to your earlier answer" with the earlier question and answer
+- [ ] Questions with **Plan step** sit under a heading with the step's name and date
+- [ ] Adding a new set dated before a set the client already sent leaves the sent set under "Already sent"
 
 ## Approvals
 
